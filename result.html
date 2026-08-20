@@ -26,7 +26,11 @@ body {
   padding: 14px;
   background: #111827;
   color: #f9fafb;
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
 }
 
 .wrap {
@@ -34,19 +38,11 @@ body {
   margin: auto;
 }
 
-h1 {
-  margin: 3px 0;
-}
-
-.sub {
-  color: #9ca3af;
-}
-
 .card {
-  margin-bottom: 12px;
   padding: 14px;
-  border: 1px solid #374151;
+  margin-bottom: 12px;
   border-radius: 14px;
+  border: 1px solid #374151;
   background: #1f2937;
 }
 
@@ -55,8 +51,8 @@ h1 {
   border-radius: 10px;
   background: #111827;
   white-space: pre-wrap;
-  font-weight: 700;
   line-height: 1.6;
+  font-weight: 700;
 }
 
 .success {
@@ -71,20 +67,27 @@ h1 {
   color: #fde68a;
 }
 
-textarea,
+label {
+  display: block;
+  margin: 10px 0 5px;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
 input,
+textarea,
 button {
   width: 100%;
   border-radius: 9px;
   font-size: 15px;
 }
 
-textarea,
-input {
+input,
+textarea {
   padding: 10px;
-  border: 1px solid #4b5563;
   background: #111827;
   color: white;
+  border: 1px solid #4b5563;
 }
 
 textarea {
@@ -127,19 +130,13 @@ button {
   gap: 8px;
 }
 
-label {
-  display: block;
-  margin: 10px 0 5px;
-  color: #9ca3af;
-  font-size: 13px;
+.userbox {
+  padding: 12px;
+  border-radius: 10px;
+  background: #111827;
 }
 
-details summary {
-  cursor: pointer;
-  font-weight: 700;
-}
-
-@media (max-width:600px) {
+@media(max-width:600px) {
 
   .grid {
     grid-template-columns: 1fr;
@@ -150,15 +147,39 @@ details summary {
 
 </head>
 
+
 <body>
 
 <div class="wrap">
 
-<h1>PC 실행 결과</h1>
+<h1>
+PC 실행 결과
+</h1>
 
-<p class="sub">
-5초마다 자동으로 최신 PowerShell 실행 결과를 확인합니다.
-</p>
+
+<div class="card">
+
+<div class="userbox">
+
+<label>
+현재 User ID
+</label>
+
+<input
+  id="userId"
+  placeholder="예: sv40"
+>
+
+<button
+  class="blue"
+  onclick="saveUser()"
+>
+User ID 적용
+</button>
+
+</div>
+
+</div>
 
 
 <div class="card">
@@ -241,23 +262,47 @@ PowerShell 출력
 GitHub 설정
 </summary>
 
-<label>GitHub 사용자명</label>
-<input id="owner" value="joo-ec">
+<label>
+GitHub 사용자명
+</label>
 
-<label>Repository</label>
-<input id="repo" value="gpt-to-pc-data">
+<input
+  id="owner"
+  value="joo-ec"
+>
 
-<label>Branch</label>
-<input id="branch" value="main">
+<label>
+Repository
+</label>
 
-<label>PAT</label>
-<input id="token" type="password">
+<input
+  id="repo"
+  value="gpt-to-pc-data"
+>
+
+<label>
+Branch
+</label>
+
+<input
+  id="branch"
+  value="main"
+>
+
+<label>
+PAT
+</label>
+
+<input
+  id="token"
+  type="password"
+>
 
 <button
   class="blue"
-  onclick="saveSettings()"
+  onclick="saveGitHub()"
 >
-설정 저장
+GitHub 설정 저장
 </button>
 
 </details>
@@ -269,7 +314,7 @@ GitHub 설정
   class="gray"
   onclick="location.href='./'"
 >
-전송 화면으로
+전송 화면
 </button>
 
 </div>
@@ -282,27 +327,89 @@ const $ =
     document.getElementById(id);
 
 
-function loadSettings() {
+function cleanUserId(value) {
 
-  $('owner').value =
-    localStorage.getItem('githubOwner') ||
-    'joo-ec';
-
-  $('repo').value =
-    localStorage.getItem('githubRepo') ||
-    'gpt-to-pc-data';
-
-  $('branch').value =
-    localStorage.getItem('githubBranch') ||
-    'main';
-
-  $('token').value =
-    localStorage.getItem('githubToken') ||
-    '';
+  return String(
+    value || ''
+  )
+    .trim()
+    .toLowerCase()
+    .replace(
+      /[^a-z0-9._-]/g,
+      '-'
+    )
+    .replace(
+      /-+/g,
+      '-'
+    )
+    .replace(
+      /^[-.]+|[-.]+$/g,
+      ''
+    );
 }
 
 
-function saveSettings() {
+function loadSettings() {
+
+  $('userId').value =
+    localStorage.getItem(
+      'bridgeUserId'
+    ) || 'user1';
+
+
+  $('owner').value =
+    localStorage.getItem(
+      'githubOwner'
+    ) || 'joo-ec';
+
+
+  $('repo').value =
+    localStorage.getItem(
+      'githubRepo'
+    ) || 'gpt-to-pc-data';
+
+
+  $('branch').value =
+    localStorage.getItem(
+      'githubBranch'
+    ) || 'main';
+
+
+  $('token').value =
+    localStorage.getItem(
+      'githubToken'
+    ) || '';
+}
+
+
+function saveUser() {
+
+  let value =
+    cleanUserId(
+      $('userId').value
+    );
+
+
+  if (!value) {
+    value = 'user1';
+  }
+
+
+  $('userId').value =
+    value;
+
+
+  localStorage.setItem(
+    'bridgeUserId',
+    value
+  );
+
+
+  loadResult();
+}
+
+
+function saveGitHub() {
 
   localStorage.setItem(
     'githubOwner',
@@ -324,13 +431,22 @@ function saveSettings() {
     $('token').value.trim()
   );
 
+
   loadResult();
 }
 
 
 function config() {
 
+  const userId =
+    cleanUserId(
+      $('userId').value
+    );
+
+
   const result = {
+
+    userId,
 
     owner:
       $('owner').value.trim(),
@@ -346,6 +462,13 @@ function config() {
   };
 
 
+  if (!result.userId) {
+    throw new Error(
+      'User ID를 입력하세요.'
+    );
+  }
+
+
   if (
     !result.owner ||
     !result.repo ||
@@ -356,6 +479,7 @@ function config() {
       'GitHub 설정을 확인하세요.'
     );
   }
+
 
   return result;
 }
@@ -400,7 +524,7 @@ function apiUrl(
 }
 
 
-function decodeBase64(value) {
+function decodeContent(value) {
 
   const binary =
     atob(
@@ -408,10 +532,12 @@ function decodeBase64(value) {
         .replace(/\s/g, '')
     );
 
+
   const bytes =
     new Uint8Array(
       binary.length
     );
+
 
   for (
     let i = 0;
@@ -423,6 +549,7 @@ function decodeBase64(value) {
       binary.charCodeAt(i);
   }
 
+
   return new TextDecoder(
     'utf-8'
   ).decode(bytes);
@@ -431,23 +558,31 @@ function decodeBase64(value) {
 
 async function readText(
   c,
-  path
+  relativePath
 ) {
 
   const response =
     await fetch(
-      apiUrl(c, path),
+      apiUrl(
+        c,
+        relativePath
+      ),
       {
         cache:
           'no-store',
 
         headers:
-          headers(c.token)
+          headers(
+            c.token
+          )
       }
     );
 
 
-  if (response.status === 404) {
+  if (
+    response.status === 404
+  ) {
+
     return '';
   }
 
@@ -455,7 +590,7 @@ async function readText(
   if (!response.ok) {
 
     throw new Error(
-      'GitHub 응답 ' +
+      'GitHub ' +
       response.status
     );
   }
@@ -465,7 +600,7 @@ async function readText(
     await response.json();
 
 
-  return decodeBase64(
+  return decodeContent(
     data.content
   );
 }
@@ -479,17 +614,39 @@ async function loadResult() {
       config();
 
 
+    const base =
+      'users/' +
+      c.userId +
+      '/result/';
+
+
     const resultText =
       await readText(
         c,
-        'result/latest.json'
+        base +
+        'latest.json'
       );
 
 
     if (!resultText) {
 
+      $('status').className =
+        'status';
+
+
       $('status').textContent =
-        '아직 실행 결과가 없습니다.';
+        'User ID: ' +
+        c.userId +
+        '\n\n아직 실행 결과가 없습니다.';
+
+
+      $('errorText').value =
+        '';
+
+
+      $('outputText').value =
+        '';
+
 
       return;
     }
@@ -509,14 +666,12 @@ async function loadResult() {
       $('status').className =
         'status running';
 
+
       $('status').textContent =
-        '⏳ PowerShell 실행 중\n\n' +
-        (
-          result.inputSha
-            ? 'SHA: ' +
-              result.inputSha.substring(0,8)
-            : ''
-        );
+        '⏳ 실행 중\n\n' +
+        'User: ' +
+        c.userId;
+
 
       return;
     }
@@ -525,19 +680,22 @@ async function loadResult() {
     const output =
       await readText(
         c,
-        'result/output.txt'
+        base +
+        'output.txt'
       );
 
 
     const errorText =
       await readText(
         c,
-        'result/error.txt'
+        base +
+        'error.txt'
       );
 
 
     $('outputText').value =
       output;
+
 
     $('errorText').value =
       errorText;
@@ -557,62 +715,44 @@ async function loadResult() {
       );
 
 
-    let text =
+    $('status').textContent =
       (
         success
           ? '✅ 실행 성공'
           : '❌ 실행 실패'
       ) +
-      '\n\n';
-
-
-    text +=
-      'ExitCode: ' +
+      '\n\nUser: ' +
+      c.userId +
+      '\nExitCode: ' +
       result.exitCode +
-      '\n';
-
-
-    if (result.endedAt) {
-
-      text +=
-        '완료: ' +
-        new Date(
-          result.endedAt
-        ).toLocaleString() +
-        '\n';
-    }
-
-
-    if (
-      result.durationSeconds !==
-      undefined
-    ) {
-
-      text +=
-        '실행시간: ' +
-        result.durationSeconds +
-        '초\n';
-    }
-
-
-    if (result.inputSha) {
-
-      text +=
-        'SHA: ' +
-        result.inputSha.substring(
-          0,
-          8
-        );
-    }
-
-
-    $('status').textContent =
-      text;
+      '\n완료: ' +
+      (
+        result.endedAt
+          ? new Date(
+              result.endedAt
+            ).toLocaleString()
+          : '-'
+      ) +
+      '\n실행시간: ' +
+      (
+        result.durationSeconds ??
+        '-'
+      ) +
+      '초\nSHA: ' +
+      (
+        result.inputSha
+          ? result.inputSha.substring(
+              0,
+              8
+            )
+          : '-'
+      );
   }
   catch (error) {
 
     $('status').className =
       'status failed';
+
 
     $('status').textContent =
       '결과 조회 오류\n\n' +
@@ -623,14 +763,10 @@ async function loadResult() {
 
 async function copyError() {
 
-  const text =
-    $('errorText').value;
-
-
-  if (!text) {
+  if (!$('errorText').value) {
 
     alert(
-      '오류 내용이 없습니다.'
+      '오류가 없습니다.'
     );
 
     return;
@@ -639,12 +775,9 @@ async function copyError() {
 
   await navigator
     .clipboard
-    .writeText(text);
-
-
-  alert(
-    '오류를 복사했습니다.'
-  );
+    .writeText(
+      $('errorText').value
+    );
 }
 
 
@@ -685,22 +818,14 @@ async function copyErrorAndChatGPT() {
 
 async function copyAll() {
 
-  const text =
-    '=== ERROR ===\n' +
-    $('errorText').value +
-    '\n\n' +
-    '=== OUTPUT ===\n' +
-    $('outputText').value;
-
-
   await navigator
     .clipboard
-    .writeText(text);
-
-
-  alert(
-    '전체 결과를 복사했습니다.'
-  );
+    .writeText(
+      '=== ERROR ===\n' +
+      $('errorText').value +
+      '\n\n=== OUTPUT ===\n' +
+      $('outputText').value
+    );
 }
 
 
@@ -716,4 +841,5 @@ setInterval(
 </script>
 
 </body>
+
 </html>

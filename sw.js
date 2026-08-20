@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gpt-to-pc-20260820162017';
+const CACHE_NAME = 'gpt-to-pc-multi-20260820163209';
 
 const APP_SHELL = [
   './',

@@ -2191,5 +2191,230 @@ if (
 >
 PC 실행 결과
 </a>
+<!-- GPT_MULTIUSER_START -->
+
+<script>
+
+(function () {
+
+  const settings =
+    document.getElementById(
+      'settingsDetails'
+    );
+
+  const sendPath =
+    document.getElementById(
+      'sendPath'
+    );
+
+
+  if (!settings || !sendPath) {
+    return;
+  }
+
+
+  function cleanUserId(value) {
+
+    return String(
+      value || ''
+    )
+      .trim()
+      .toLowerCase()
+      .replace(
+        /[^a-z0-9._-]/g,
+        '-'
+      )
+      .replace(
+        /-+/g,
+        '-'
+      )
+      .replace(
+        /^[-.]+|[-.]+$/g,
+        ''
+      );
+  }
+
+
+  const wrapper =
+    document.createElement(
+      'div'
+    );
+
+
+  wrapper.id =
+    'multiUserSettings';
+
+
+  wrapper.innerHTML = `
+    <label>
+      User ID
+    </label>
+
+    <input
+      id="bridgeUserId"
+      placeholder="예: sv40 / tester1"
+      autocomplete="off"
+    >
+
+    <div
+      style="
+        margin-top:6px;
+        color:#9ca3af;
+        font-size:12px;
+        line-height:1.5;
+      "
+    >
+      같은 저장소를 사용하더라도 User ID가 다르면 서로 완전히 분리됩니다.
+    </div>
+  `;
+
+
+  const summary =
+    settings.querySelector(
+      'summary'
+    );
+
+
+  if (summary) {
+
+    summary.insertAdjacentElement(
+      'afterend',
+      wrapper
+    );
+
+  } else {
+
+    settings.prepend(
+      wrapper
+    );
+  }
+
+
+  const userInput =
+    document.getElementById(
+      'bridgeUserId'
+    );
+
+
+  userInput.value =
+    localStorage.getItem(
+      'bridgeUserId'
+    ) || 'user1';
+
+
+  function updatePath() {
+
+    let userId =
+      cleanUserId(
+        userInput.value
+      );
+
+
+    if (!userId) {
+
+      userId =
+        'user1';
+    }
+
+
+    userInput.value =
+      userId;
+
+
+    localStorage.setItem(
+      'bridgeUserId',
+      userId
+    );
+
+
+    const path =
+      'users/' +
+      userId +
+      '/inbox/latest.ps1';
+
+
+    sendPath.value =
+      path;
+
+
+    sendPath.readOnly =
+      true;
+
+
+    localStorage.setItem(
+      'githubPath',
+      path
+    );
+  }
+
+
+  userInput.addEventListener(
+    'change',
+    updatePath
+  );
+
+
+  userInput.addEventListener(
+    'blur',
+    updatePath
+  );
+
+
+  updatePath();
+
+
+  // 기존 saveSettings에 User ID 저장 기능 추가
+  if (
+    typeof window.saveSettings ===
+    'function'
+  ) {
+
+    const originalSaveSettings =
+      window.saveSettings;
+
+
+    window.saveSettings =
+      function () {
+
+        updatePath();
+
+        return originalSaveSettings();
+      };
+  }
+
+
+  // result.html로 이동할 때 User ID도 localStorage로 공유됨
+  const resultLink =
+    Array
+      .from(
+        document.querySelectorAll(
+          'a'
+        )
+      )
+      .find(
+        item =>
+          String(
+            item.getAttribute(
+              'href'
+            ) || ''
+          ).includes(
+            'result.html'
+          )
+      );
+
+
+  if (resultLink) {
+
+    resultLink.addEventListener(
+      'click',
+      updatePath
+    );
+  }
+
+})();
+
+</script>
+
+<!-- GPT_MULTIUSER_END -->
 </body>
 </html>
