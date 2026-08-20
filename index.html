@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  >
+
+  <meta name="theme-color" content="#111827">
+
+  <link
+    rel="manifest"
+    href="./manifest.webmanifest"
+  >
+
+  <title>GPT → PC</title>
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 18px;
+      background: #111827;
+      color: #f9fafb;
+      font-family:
+        system-ui,
+        -apple-system,
+        "Segoe UI",
+        sans-serif;
+    }
+
+    .wrap {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 28px;
+    }
+
+    .sub {
+      color: #9ca3af;
+      margin: 0 0 20px;
+      line-height: 1.5;
+    }
+
+    .card {
+      padding: 16px;
+      border-radius: 14px;
+      background: #1f2937;
+      border: 1px solid #374151;
+      margin-bottom: 14px;
+    }
+
+    .status {
+      padding: 12px;
+      border-radius: 10px;
+      background: #111827;
+      color: #d1d5db;
+      line-height: 1.5;
+    }
+
+    button {
+      width: 100%;
+      border: 0;
+      border-radius: 10px;
+      padding: 14px;
+      margin-top: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      background: #2563eb;
+      color: white;
+    }
+
+    .secondary {
+      background: #374151;
+    }
+
+    .good {
+      color: #86efac;
+    }
+
+    ol {
+      padding-left: 22px;
+      line-height: 1.8;
+    }
+
+    code {
+      background: #111827;
+      border-radius: 5px;
+      padding: 2px 6px;
+    }
+
+  </style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+  <h1>GPT → PC</h1>
+
+  <p class="sub">
+    Android ChatGPT가 실제로 어떤 데이터를 공유하는지 확인하는 테스트 앱입니다.
+  </p>
+
+
+  <div class="card">
+
+    <strong>상태</strong>
+
+    <div
+      id="status"
+      class="status"
+      style="margin-top:10px"
+    >
+      앱 준비 중...
+    </div>
+
+  </div>
+
+
+  <div class="card">
+
+    <strong>테스트 방법</strong>
+
+    <ol>
+      <li>이 페이지를 Chrome에서 설치합니다.</li>
+      <li>ChatGPT Android 앱으로 이동합니다.</li>
+      <li>아무 답변 하나를 공유합니다.</li>
+      <li>공유 목록에서 <b>GPT → PC</b>를 선택합니다.</li>
+      <li>공유받은 내용을 확인합니다.</li>
+    </ol>
+
+  </div>
+
+
+  <div class="card">
+
+    <strong>중요</strong>
+
+    <p>
+      아직 GitHub로 GPT 답변을 전송하지 않습니다.
+      먼저 ChatGPT가 실제로 답변 전문을 넘기는지 확인합니다.
+    </p>
+
+  </div>
+
+
+  <button
+    id="installButton"
+    style="display:none"
+  >
+    GPT → PC 설치
+  </button>
+
+
+  <button
+    class="secondary"
+    onclick="location.href='./share.html'"
+  >
+    공유 수신 화면 테스트
+  </button>
+
+</div>
+
+
+<script>
+
+let deferredPrompt = null;
+
+const installButton =
+  document.getElementById(
+    'installButton'
+  );
+
+const statusBox =
+  document.getElementById(
+    'status'
+  );
+
+
+if (
+  'serviceWorker' in navigator
+) {
+
+  navigator.serviceWorker
+    .register('./sw.js')
+    .then(() => {
+
+      statusBox.innerHTML =
+        '<span class="good">✓ Service Worker 준비 완료</span><br>' +
+        'Chrome에서 이 앱을 설치해주세요.';
+
+    })
+    .catch(error => {
+
+      statusBox.textContent =
+        'Service Worker 오류: ' +
+        error.message;
+
+    });
+}
+
+
+window.addEventListener(
+  'beforeinstallprompt',
+  event => {
+
+    event.preventDefault();
+
+    deferredPrompt = event;
+
+    installButton.style.display =
+      'block';
+
+  }
+);
+
+
+installButton.addEventListener(
+  'click',
+  async () => {
+
+    if (!deferredPrompt) {
+      return;
+    }
+
+    deferredPrompt.prompt();
+
+    await deferredPrompt.userChoice;
+
+    deferredPrompt = null;
+
+    installButton.style.display =
+      'none';
+
+  }
+);
+
+</script>
+
+</body>
+</html>

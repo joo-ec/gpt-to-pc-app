@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  >
+
+  <meta name="theme-color" content="#111827">
+
+  <link
+    rel="manifest"
+    href="./manifest.webmanifest"
+  >
+
+  <title>GPT → PC 공유 수신</title>
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 14px;
+      background: #111827;
+      color: white;
+      font-family:
+        system-ui,
+        -apple-system,
+        "Segoe UI",
+        sans-serif;
+    }
+
+    .wrap {
+      max-width: 760px;
+      margin: auto;
+    }
+
+    h1 {
+      margin: 0 0 5px;
+    }
+
+    .sub {
+      color: #9ca3af;
+      margin-top: 0;
+    }
+
+    .card {
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      color: #9ca3af;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 85px;
+      resize: vertical;
+      background: #111827;
+      color: #f9fafb;
+      border: 1px solid #4b5563;
+      border-radius: 9px;
+      padding: 10px;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    #text {
+      min-height: 300px;
+      font-family:
+        "Cascadia Code",
+        Consolas,
+        monospace;
+    }
+
+    button {
+      width: 100%;
+      border: 0;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 10px;
+      background: #2563eb;
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .secondary {
+      background: #374151;
+    }
+
+    .result {
+      white-space: pre-wrap;
+      padding: 12px;
+      border-radius: 10px;
+      background: #111827;
+      color: #d1d5db;
+    }
+
+    .success {
+      color: #86efac;
+    }
+
+    .warning {
+      color: #fde68a;
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+<div class="wrap">
+
+  <h1>공유 내용 수신</h1>
+
+  <p class="sub">
+    ChatGPT가 Android 공유 시스템에 넘긴 값을 그대로 보여줍니다.
+  </p>
+
+
+  <div class="card">
+
+    <div id="summary" class="result">
+      공유 데이터 확인 중...
+    </div>
+
+  </div>
+
+
+  <div class="card">
+
+    <label>title</label>
+
+    <textarea
+      id="title"
+      readonly
+    ></textarea>
+
+  </div>
+
+
+  <div class="card">
+
+    <label>text</label>
+
+    <textarea
+      id="text"
+      readonly
+    ></textarea>
+
+  </div>
+
+
+  <div class="card">
+
+    <label>url</label>
+
+    <textarea
+      id="url"
+      readonly
+    ></textarea>
+
+  </div>
+
+
+  <button onclick="copyAll()">
+    받은 내용 전체 복사
+  </button>
+
+  <button
+    class="secondary"
+    onclick="location.href='./'"
+  >
+    홈으로
+  </button>
+
+</div>
+
+
+<script>
+
+const params =
+  new URLSearchParams(
+    location.search
+  );
+
+
+const title =
+  params.get('title') || '';
+
+const text =
+  params.get('text') || '';
+
+const url =
+  params.get('url') || '';
+
+
+document
+  .getElementById('title')
+  .value = title;
+
+document
+  .getElementById('text')
+  .value = text;
+
+document
+  .getElementById('url')
+  .value = url;
+
+
+const summary =
+  document.getElementById(
+    'summary'
+  );
+
+
+const totalLength =
+  title.length +
+  text.length +
+  url.length;
+
+
+if (totalLength === 0) {
+
+  summary.innerHTML =
+    '<span class="warning">' +
+    '공유받은 데이터가 없습니다.' +
+    '</span>';
+
+} else {
+
+  let result =
+    '공유 수신 성공\n\n' +
+    'title: ' +
+    title.length +
+    '자\n' +
+    'text: ' +
+    text.length +
+    '자\n' +
+    'url: ' +
+    url.length +
+    '자';
+
+
+  if (
+    text.length > 300
+  ) {
+
+    result +=
+      '\n\n✅ text에 긴 본문이 들어왔습니다.';
+
+  } else if (
+    text.includes('http')
+  ) {
+
+    result +=
+      '\n\n⚠️ text가 링크 위주로 보입니다.';
+
+  }
+
+
+  summary.textContent =
+    result;
+}
+
+
+async function copyAll() {
+
+  const combined = [
+    title,
+    text,
+    url
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+
+
+  try {
+
+    await navigator
+      .clipboard
+      .writeText(
+        combined
+      );
+
+    alert(
+      '클립보드에 복사했습니다.'
+    );
+
+  } catch {
+
+    alert(
+      '클립보드 복사에 실패했습니다.'
+    );
+  }
+}
+
+</script>
+
+</body>
+</html>
