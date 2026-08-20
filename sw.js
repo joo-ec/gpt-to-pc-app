@@ -1,10 +1,9 @@
 const CACHE_NAME =
-  'gpt-to-pc-v1';
+  'gpt-to-pc-v3';
 
-const FILES = [
+const APP_SHELL = [
   './',
   './index.html',
-  './share.html',
   './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png'
@@ -17,12 +16,15 @@ self.addEventListener(
 
     event.waitUntil(
       caches
-        .open(CACHE_NAME)
-        .then(cache => {
-          return cache.addAll(
-            FILES
-          );
-        })
+        .open(
+          CACHE_NAME
+        )
+        .then(
+          cache =>
+            cache.addAll(
+              APP_SHELL
+            )
+        )
     );
 
     self.skipWaiting();
@@ -35,7 +37,29 @@ self.addEventListener(
   event => {
 
     event.waitUntil(
-      self.clients.claim()
+
+      caches
+        .keys()
+        .then(
+          names =>
+            Promise.all(
+              names
+                .filter(
+                  name =>
+                    name !== CACHE_NAME
+                )
+                .map(
+                  name =>
+                    caches.delete(
+                      name
+                    )
+                )
+            )
+        )
+        .then(
+          () =>
+            self.clients.claim()
+        )
     );
   }
 );
@@ -51,13 +75,43 @@ self.addEventListener(
       return;
     }
 
+
     event.respondWith(
-      fetch(event.request)
-        .catch(() => {
-          return caches.match(
-            event.request
-          );
-        })
+
+      fetch(
+        event.request
+      )
+
+        .then(
+          response => {
+
+            const copy =
+              response.clone();
+
+
+            caches
+              .open(
+                CACHE_NAME
+              )
+              .then(
+                cache =>
+                  cache.put(
+                    event.request,
+                    copy
+                  )
+              );
+
+
+            return response;
+          }
+        )
+
+        .catch(
+          () =>
+            caches.match(
+              event.request
+            )
+        )
     );
   }
 );

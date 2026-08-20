@@ -2,184 +2,356 @@
 <html lang="ko">
 
 <head>
-  <meta charset="utf-8">
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1, viewport-fit=cover"
-  >
+<meta charset="utf-8">
 
-  <meta name="theme-color" content="#111827">
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, viewport-fit=cover"
+>
 
-  <link
-    rel="manifest"
-    href="./manifest.webmanifest"
-  >
+<meta name="theme-color" content="#111827">
 
-  <title>GPT → PC</title>
+<link
+  rel="manifest"
+  href="./manifest.webmanifest"
+>
 
-  <style>
+<title>GPT → PC</title>
 
-    * {
-      box-sizing: border-box;
-    }
+<style>
 
-    body {
-      margin: 0;
-      padding: 18px;
-      background: #111827;
-      color: #f9fafb;
-      font-family:
-        system-ui,
-        -apple-system,
-        "Segoe UI",
-        sans-serif;
-    }
+* {
+  box-sizing: border-box;
+}
 
-    .wrap {
-      max-width: 720px;
-      margin: 0 auto;
-    }
+body {
+  margin: 0;
+  padding: 14px;
+  background: #111827;
+  color: #f9fafb;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+}
 
-    h1 {
-      margin: 0 0 4px;
-      font-size: 28px;
-    }
+.wrap {
+  max-width: 760px;
+  margin: auto;
+}
 
-    .sub {
-      color: #9ca3af;
-      margin: 0 0 20px;
-      line-height: 1.5;
-    }
+h1 {
+  margin: 3px 0;
+  font-size: 27px;
+}
 
-    .card {
-      padding: 16px;
-      border-radius: 14px;
-      background: #1f2937;
-      border: 1px solid #374151;
-      margin-bottom: 14px;
-    }
+.sub {
+  margin: 0 0 16px;
+  color: #9ca3af;
+  line-height: 1.5;
+}
 
-    .status {
-      padding: 12px;
-      border-radius: 10px;
-      background: #111827;
-      color: #d1d5db;
-      line-height: 1.5;
-    }
+.card {
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px solid #374151;
+  border-radius: 14px;
+  background: #1f2937;
+}
 
-    button {
-      width: 100%;
-      border: 0;
-      border-radius: 10px;
-      padding: 14px;
-      margin-top: 10px;
-      font-size: 16px;
-      font-weight: 700;
-      background: #2563eb;
-      color: white;
-    }
+label {
+  display: block;
+  margin: 10px 0 5px;
+  color: #9ca3af;
+  font-size: 13px;
+}
 
-    .secondary {
-      background: #374151;
-    }
+input,
+textarea,
+button {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 9px;
+  font-size: 16px;
+}
 
-    .good {
-      color: #86efac;
-    }
+input,
+textarea {
+  padding: 11px;
+  border: 1px solid #4b5563;
+  background: #111827;
+  color: white;
+}
 
-    ol {
-      padding-left: 22px;
-      line-height: 1.8;
-    }
+textarea {
+  min-height: 280px;
+  resize: vertical;
+  font-family:
+    "Cascadia Code",
+    Consolas,
+    monospace;
+  line-height: 1.45;
+}
 
-    code {
-      background: #111827;
-      border-radius: 5px;
-      padding: 2px 6px;
-    }
+button {
+  margin-top: 9px;
+  padding: 14px;
+  border: 0;
+  font-weight: 700;
+  color: white;
+}
 
-  </style>
+.primary {
+  background: #059669;
+}
+
+.blue {
+  background: #2563eb;
+}
+
+.gray {
+  background: #374151;
+}
+
+.red {
+  background: #7f1d1d;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.status {
+  padding: 12px;
+  border-radius: 9px;
+  background: #111827;
+  color: #d1d5db;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.good {
+  color: #86efac;
+}
+
+.warning {
+  color: #fde68a;
+}
+
+.count {
+  margin-top: 6px;
+  text-align: right;
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+details summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+@media (max-width: 600px) {
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  textarea {
+    min-height: 240px;
+  }
+}
+
+</style>
+
 </head>
 
 <body>
 
 <div class="wrap">
 
-  <h1>GPT → PC</h1>
+<h1>GPT → PC</h1>
 
-  <p class="sub">
-    Android ChatGPT가 실제로 어떤 데이터를 공유하는지 확인하는 테스트 앱입니다.
-  </p>
-
-
-  <div class="card">
-
-    <strong>상태</strong>
-
-    <div
-      id="status"
-      class="status"
-      style="margin-top:10px"
-    >
-      앱 준비 중...
-    </div>
-
-  </div>
+<p class="sub">
+ChatGPT 코드 복사 → 이 앱 → PC로 전송
+</p>
 
 
-  <div class="card">
+<div class="card">
 
-    <strong>테스트 방법</strong>
+<button
+  class="primary"
+  onclick="clipboardAndSend()"
+>
+클립보드 읽고 PC로 전송
+</button>
 
-    <ol>
-      <li>이 페이지를 Chrome에서 설치합니다.</li>
-      <li>ChatGPT Android 앱으로 이동합니다.</li>
-      <li>아무 답변 하나를 공유합니다.</li>
-      <li>공유 목록에서 <b>GPT → PC</b>를 선택합니다.</li>
-      <li>공유받은 내용을 확인합니다.</li>
-    </ol>
+<button
+  class="blue"
+  onclick="readClipboard()"
+>
+클립보드만 가져오기
+</button>
 
-  </div>
+<div
+  id="status"
+  class="status"
+  style="margin-top:10px"
+>
+준비됨
+</div>
 
-
-  <div class="card">
-
-    <strong>중요</strong>
-
-    <p>
-      아직 GitHub로 GPT 답변을 전송하지 않습니다.
-      먼저 ChatGPT가 실제로 답변 전문을 넘기는지 확인합니다.
-    </p>
-
-  </div>
-
-
-  <button
-    id="installButton"
-    style="display:none"
-  >
-    GPT → PC 설치
-  </button>
+</div>
 
 
-  <button
-    class="secondary"
-    onclick="location.href='./share.html'"
-  >
-    공유 수신 화면 테스트
-  </button>
+<div class="card">
+
+<label>
+전송할 코드
+</label>
+
+<textarea
+  id="content"
+  placeholder="ChatGPT에서 코드 블록의 복사 버튼을 누른 뒤 위의 전송 버튼을 누르세요."
+></textarea>
+
+<div
+  id="count"
+  class="count"
+>
+0자
+</div>
+
+
+<label>
+GitHub 저장 파일
+</label>
+
+<input
+  id="path"
+  value="inbox/latest.ps1"
+>
+
+<div class="grid">
+
+<button
+  class="gray"
+  onclick="sendCurrentText()"
+>
+현재 내용 전송
+</button>
+
+<button
+  class="red"
+  onclick="clearText()"
+>
+내용 지우기
+</button>
+
+</div>
+
+</div>
+
+
+<div class="card">
+
+<details id="settingsDetails">
+
+<summary>
+GitHub 연결 설정
+</summary>
+
+<label>
+GitHub 사용자명
+</label>
+
+<input
+  id="owner"
+  placeholder="예: joo-ec"
+>
+
+<label>
+Private Repository
+</label>
+
+<input
+  id="repo"
+  value="gpt-to-pc-data"
+>
+
+<label>
+Branch
+</label>
+
+<input
+  id="branch"
+  value="main"
+>
+
+<label>
+Fine-grained PAT
+</label>
+
+<input
+  id="token"
+  type="password"
+  placeholder="github_pat_..."
+>
+
+<button
+  class="blue"
+  onclick="saveSettings()"
+>
+설정 저장
+</button>
+
+<button
+  class="gray"
+  onclick="testConnection()"
+>
+GitHub 연결 테스트
+</button>
+
+<button
+  class="red"
+  onclick="clearToken()"
+>
+저장된 토큰 삭제
+</button>
+
+</details>
+
+</div>
+
+
+<div class="card">
+
+<div class="status">
+사용법
+
+1. ChatGPT 코드 블록에서 "복사"
+2. GPT → PC 앱 실행
+3. "클립보드 읽고 PC로 전송"
+
+끝.
+</div>
+
+</div>
 
 </div>
 
 
 <script>
 
-let deferredPrompt = null;
+const API_VERSION =
+  '2026-03-10';
 
-const installButton =
+const contentBox =
   document.getElementById(
-    'installButton'
+    'content'
   );
 
 const statusBox =
@@ -187,64 +359,767 @@ const statusBox =
     'status'
   );
 
+const countBox =
+  document.getElementById(
+    'count'
+  );
+
+
+function setStatus(text) {
+
+  statusBox.textContent =
+    text;
+}
+
+
+function updateCount() {
+
+  countBox.textContent =
+    contentBox.value.length
+      .toLocaleString()
+    +
+    '자';
+}
+
+
+contentBox.addEventListener(
+  'input',
+  updateCount
+);
+
+
+function loadSettings() {
+
+  document.getElementById(
+    'owner'
+  ).value =
+    localStorage.getItem(
+      'githubOwner'
+    ) || 'joo-ec';
+
+
+  document.getElementById(
+    'repo'
+  ).value =
+    localStorage.getItem(
+      'githubRepo'
+    ) || 'gpt-to-pc-data';
+
+
+  document.getElementById(
+    'branch'
+  ).value =
+    localStorage.getItem(
+      'githubBranch'
+    ) || 'main';
+
+
+  document.getElementById(
+    'path'
+  ).value =
+    localStorage.getItem(
+      'githubPath'
+    ) || 'inbox/latest.ps1';
+
+
+  document.getElementById(
+    'token'
+  ).value =
+    localStorage.getItem(
+      'githubToken'
+    ) || '';
+}
+
+
+function saveSettings() {
+
+  const owner =
+    document
+      .getElementById('owner')
+      .value
+      .trim();
+
+  const repo =
+    document
+      .getElementById('repo')
+      .value
+      .trim();
+
+  const branch =
+    document
+      .getElementById('branch')
+      .value
+      .trim();
+
+  const path =
+    document
+      .getElementById('path')
+      .value
+      .trim();
+
+  const token =
+    document
+      .getElementById('token')
+      .value
+      .trim();
+
+
+  localStorage.setItem(
+    'githubOwner',
+    owner
+  );
+
+  localStorage.setItem(
+    'githubRepo',
+    repo
+  );
+
+  localStorage.setItem(
+    'githubBranch',
+    branch
+  );
+
+  localStorage.setItem(
+    'githubPath',
+    path
+  );
+
+  localStorage.setItem(
+    'githubToken',
+    token
+  );
+
+
+  setStatus(
+    'GitHub 설정을 이 휴대폰에 저장했습니다.'
+  );
+}
+
+
+function getSettings() {
+
+  const settings = {
+
+    owner:
+      document
+        .getElementById('owner')
+        .value
+        .trim(),
+
+    repo:
+      document
+        .getElementById('repo')
+        .value
+        .trim(),
+
+    branch:
+      document
+        .getElementById('branch')
+        .value
+        .trim(),
+
+    path:
+      document
+        .getElementById('path')
+        .value
+        .trim(),
+
+    token:
+      document
+        .getElementById('token')
+        .value
+        .trim()
+  };
+
+
+  if (!settings.owner) {
+    throw new Error(
+      'GitHub 사용자명을 입력하세요.'
+    );
+  }
+
+  if (!settings.repo) {
+    throw new Error(
+      'Private Repository 이름을 입력하세요.'
+    );
+  }
+
+  if (!settings.branch) {
+    throw new Error(
+      'Branch를 입력하세요.'
+    );
+  }
+
+  if (!settings.path) {
+    throw new Error(
+      '저장 파일 경로를 입력하세요.'
+    );
+  }
+
+  if (!settings.token) {
+    throw new Error(
+      'Fine-grained PAT를 입력하세요.'
+    );
+  }
+
+
+  return settings;
+}
+
+
+function headers(token) {
+
+  return {
+
+    'Accept':
+      'application/vnd.github+json',
+
+    'Authorization':
+      'Bearer ' + token,
+
+    'X-GitHub-Api-Version':
+      API_VERSION
+  };
+}
+
+
+function apiUrl(
+  owner,
+  repo,
+  path
+) {
+
+  const encodedPath =
+    path
+      .split('/')
+      .map(
+        part =>
+          encodeURIComponent(part)
+      )
+      .join('/');
+
+
+  return (
+    'https://api.github.com/repos/' +
+    encodeURIComponent(owner) +
+    '/' +
+    encodeURIComponent(repo) +
+    '/contents/' +
+    encodedPath
+  );
+}
+
+
+function utf8ToBase64(text) {
+
+  const bytes =
+    new TextEncoder()
+      .encode(text);
+
+
+  let binary =
+    '';
+
+
+  const chunkSize =
+    0x8000;
+
+
+  for (
+    let i = 0;
+    i < bytes.length;
+    i += chunkSize
+  ) {
+
+    const chunk =
+      bytes.subarray(
+        i,
+        Math.min(
+          i + chunkSize,
+          bytes.length
+        )
+      );
+
+
+    binary +=
+      String.fromCharCode
+        .apply(
+          null,
+          chunk
+        );
+  }
+
+
+  return btoa(
+    binary
+  );
+}
+
+
+async function readClipboard() {
+
+  try {
+
+    if (
+      !navigator.clipboard ||
+      !navigator.clipboard.readText
+    ) {
+
+      throw new Error(
+        '이 브라우저에서는 클립보드 읽기를 지원하지 않습니다.'
+      );
+    }
+
+
+    const text =
+      await navigator
+        .clipboard
+        .readText();
+
+
+    if (!text) {
+
+      throw new Error(
+        '클립보드가 비어 있습니다.'
+      );
+    }
+
+
+    contentBox.value =
+      text;
+
+
+    updateCount();
+
+
+    setStatus(
+      '클립보드 가져오기 완료\n' +
+      text.length.toLocaleString() +
+      '자'
+    );
+
+
+    return text;
+
+  } catch (error) {
+
+    setStatus(
+      '클립보드 읽기 실패\n\n' +
+      error.message +
+      '\n\n' +
+      '입력창을 길게 눌러 붙여넣기도 가능합니다.'
+    );
+
+
+    throw error;
+  }
+}
+
+
+async function testConnection() {
+
+  try {
+
+    saveSettings();
+
+
+    const s =
+      getSettings();
+
+
+    setStatus(
+      'GitHub 연결 테스트 중...'
+    );
+
+
+    const url =
+      'https://api.github.com/repos/' +
+      encodeURIComponent(s.owner) +
+      '/' +
+      encodeURIComponent(s.repo);
+
+
+    const response =
+      await fetch(
+        url,
+        {
+          headers:
+            headers(
+              s.token
+            )
+        }
+      );
+
+
+    if (!response.ok) {
+
+      let message =
+        response.status +
+        ' ' +
+        response.statusText;
+
+
+      try {
+
+        const body =
+          await response.json();
+
+        if (body.message) {
+          message =
+            body.message;
+        }
+
+      } catch {
+      }
+
+
+      throw new Error(
+        message
+      );
+    }
+
+
+    const repo =
+      await response.json();
+
+
+    setStatus(
+      'GitHub 연결 성공\n\n' +
+      repo.full_name +
+      '\nPrivate: ' +
+      repo.private +
+      '\nDefault branch: ' +
+      repo.default_branch
+    );
+
+
+  } catch (error) {
+
+    setStatus(
+      'GitHub 연결 실패\n\n' +
+      error.message
+    );
+
+
+    document
+      .getElementById(
+        'settingsDetails'
+      )
+      .open =
+      true;
+  }
+}
+
+
+async function sendToGitHub(
+  text
+) {
+
+  const s =
+    getSettings();
+
+
+  localStorage.setItem(
+    'githubPath',
+    s.path
+  );
+
+
+  const url =
+    apiUrl(
+      s.owner,
+      s.repo,
+      s.path
+    );
+
+
+  let sha =
+    null;
+
+
+  setStatus(
+    'GitHub 최신 파일 확인 중...'
+  );
+
+
+  const getResponse =
+    await fetch(
+      url +
+      '?ref=' +
+      encodeURIComponent(
+        s.branch
+      ),
+      {
+        method: 'GET',
+        headers:
+          headers(
+            s.token
+          )
+      }
+    );
+
+
+  if (getResponse.ok) {
+
+    const existing =
+      await getResponse.json();
+
+    sha =
+      existing.sha;
+  }
+
+
+  if (
+    !getResponse.ok &&
+    getResponse.status !== 404
+  ) {
+
+    let message =
+      getResponse.status +
+      ' ' +
+      getResponse.statusText;
+
+
+    try {
+
+      const body =
+        await getResponse.json();
+
+      if (body.message) {
+        message =
+          body.message;
+      }
+
+    } catch {
+    }
+
+
+    throw new Error(
+      '파일 확인 실패: ' +
+      message
+    );
+  }
+
+
+  const body = {
+
+    message:
+      'GPT to PC ' +
+      new Date()
+        .toISOString(),
+
+    content:
+      utf8ToBase64(
+        text
+      ),
+
+    branch:
+      s.branch
+  };
+
+
+  if (sha) {
+    body.sha = sha;
+  }
+
+
+  setStatus(
+    'GitHub로 전송 중...\n' +
+    text.length.toLocaleString() +
+    '자'
+  );
+
+
+  const putResponse =
+    await fetch(
+      url,
+      {
+        method: 'PUT',
+
+        headers: {
+          ...headers(
+            s.token
+          ),
+
+          'Content-Type':
+            'application/json'
+        },
+
+        body:
+          JSON.stringify(
+            body
+          )
+      }
+    );
+
+
+  if (!putResponse.ok) {
+
+    let message =
+      putResponse.status +
+      ' ' +
+      putResponse.statusText;
+
+
+    try {
+
+      const error =
+        await putResponse.json();
+
+      if (error.message) {
+        message =
+          error.message;
+      }
+
+    } catch {
+    }
+
+
+    throw new Error(
+      '전송 실패: ' +
+      message
+    );
+  }
+
+
+  const result =
+    await putResponse.json();
+
+
+  setStatus(
+    'PC 전송 완료!\n\n' +
+    s.owner +
+    '/' +
+    s.repo +
+    '\n' +
+    s.path +
+    '\n\n' +
+    text.length.toLocaleString() +
+    '자\n\n' +
+    'Commit:\n' +
+    result.commit.sha.substring(
+      0,
+      7
+    )
+  );
+}
+
+
+async function clipboardAndSend() {
+
+  try {
+
+    const text =
+      await readClipboard();
+
+
+    await sendToGitHub(
+      text
+    );
+
+  } catch (error) {
+
+    if (
+      !String(
+        error.message
+      ).includes(
+        '클립보드'
+      )
+    ) {
+
+      setStatus(
+        '전송 실패\n\n' +
+        error.message
+      );
+    }
+  }
+}
+
+
+async function sendCurrentText() {
+
+  try {
+
+    const text =
+      contentBox.value;
+
+
+    if (!text.trim()) {
+
+      throw new Error(
+        '전송할 내용이 없습니다.'
+      );
+    }
+
+
+    await sendToGitHub(
+      text
+    );
+
+  } catch (error) {
+
+    setStatus(
+      '전송 실패\n\n' +
+      error.message
+    );
+  }
+}
+
+
+function clearText() {
+
+  contentBox.value =
+    '';
+
+  updateCount();
+
+  setStatus(
+    '내용을 지웠습니다.'
+  );
+}
+
+
+function clearToken() {
+
+  localStorage.removeItem(
+    'githubToken'
+  );
+
+  document
+    .getElementById(
+      'token'
+    )
+    .value =
+    '';
+
+  setStatus(
+    '휴대폰에 저장된 GitHub 토큰을 삭제했습니다.'
+  );
+}
+
 
 if (
   'serviceWorker' in navigator
 ) {
 
-  navigator.serviceWorker
-    .register('./sw.js')
-    .then(() => {
-
-      statusBox.innerHTML =
-        '<span class="good">✓ Service Worker 준비 완료</span><br>' +
-        'Chrome에서 이 앱을 설치해주세요.';
-
-    })
-    .catch(error => {
-
-      statusBox.textContent =
-        'Service Worker 오류: ' +
-        error.message;
-
-    });
+  navigator
+    .serviceWorker
+    .register(
+      './sw.js'
+    )
+    .then(
+      registration =>
+        registration.update()
+    )
+    .catch(
+      () => {}
+    );
 }
 
 
-window.addEventListener(
-  'beforeinstallprompt',
-  event => {
+loadSettings();
 
-    event.preventDefault();
-
-    deferredPrompt = event;
-
-    installButton.style.display =
-      'block';
-
-  }
-);
-
-
-installButton.addEventListener(
-  'click',
-  async () => {
-
-    if (!deferredPrompt) {
-      return;
-    }
-
-    deferredPrompt.prompt();
-
-    await deferredPrompt.userChoice;
-
-    deferredPrompt = null;
-
-    installButton.style.display =
-      'none';
-
-  }
-);
+updateCount();
 
 </script>
 

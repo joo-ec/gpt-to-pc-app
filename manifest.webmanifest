@@ -1,7 +1,7 @@
 {
   "name": "GPT to PC",
   "short_name": "GPT → PC",
-  "description": "Android ChatGPT 공유 내용을 PC 전달용으로 받는 앱",
+  "description": "ChatGPT clipboard to GitHub private repository",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -18,14 +18,5 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ],
-  "share_target": {
-    "action": "./share.html",
-    "method": "GET",
-    "params": {
-      "title": "title",
-      "text": "text",
-      "url": "url"
-    }
-  }
+  ]
 }
