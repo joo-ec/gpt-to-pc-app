@@ -1195,6 +1195,144 @@ async function sendCurrentText() {
 }
 
 
+function waitMs(ms) {
+
+  return new Promise(
+    resolve => {
+      setTimeout(
+        resolve,
+        ms
+      );
+    }
+  );
+}
+
+
+async function readGitHubResponseError(
+  response
+) {
+
+  let message =
+    response.status +
+    ' ' +
+    response.statusText;
+
+
+  try {
+
+    const body =
+      await response.json();
+
+
+    if (
+      body &&
+      body.message
+    ) {
+
+      message =
+        body.message;
+    }
+
+  } catch {
+  }
+
+
+  return message;
+}
+
+
+async function getLatestGitHubFileSha(
+  s,
+  url
+) {
+
+  const response =
+    await fetch(
+      url +
+      '?ref=' +
+      encodeURIComponent(
+        s.branch
+      ) +
+      '&_=' +
+      Date.now(),
+      {
+        method:
+          'GET',
+
+        cache:
+          'no-store',
+
+        headers:
+          headers(
+            s.token
+          )
+      }
+    );
+
+
+  if (
+    response.status === 404
+  ) {
+
+    return null;
+  }
+
+
+  if (!response.ok) {
+
+    const detail =
+      await readGitHubResponseError(
+        response
+      );
+
+
+    throw new Error(
+      'GitHub 파일 확인 실패: ' +
+      detail
+    );
+  }
+
+
+  const data =
+    await response.json();
+
+
+  return (
+    data.sha ||
+    null
+  );
+}
+
+
+function isGitHubShaConflict(
+  statusCode,
+  message
+) {
+
+  const text =
+    String(
+      message || ''
+    ).toLowerCase();
+
+
+  return (
+    statusCode === 409 ||
+    statusCode === 422 ||
+    text.includes(
+      'does not match'
+    ) ||
+    (
+      text.includes(
+        'sha'
+      ) &&
+      text.includes(
+        'match'
+      )
+    )
+  );
+}
+
+
 async function sendToGitHub(text) {
 
   const s =
@@ -1215,160 +1353,274 @@ async function sendToGitHub(text) {
     );
 
 
-  let sha =
+  const maxAttempts =
+    5;
+
+
+  let lastError =
     null;
 
 
-  setSendStatus(
-    '기존 파일 확인 중...'
-  );
-
-
-  const existingResponse =
-    await fetch(
-      url +
-      '?ref=' +
-      encodeURIComponent(
-        s.branch
-      ),
-      {
-        headers:
-          headers(
-            s.token
-          )
-      }
-    );
-
-
-  if (
-    existingResponse.ok
+  for (
+    let attempt = 1;
+    attempt <= maxAttempts;
+    attempt++
   ) {
-
-    const existing =
-      await existingResponse.json();
-
-
-    sha =
-      existing.sha;
-  }
-
-
-  if (
-    !existingResponse.ok &&
-    existingResponse.status !== 404
-  ) {
-
-    throw new Error(
-      'GitHub 파일 확인 실패: ' +
-      existingResponse.status
-    );
-  }
-
-
-  const body = {
-
-    message:
-      'GPT to PC ' +
-      new Date()
-        .toISOString(),
-
-    content:
-      utf8ToBase64(
-        text
-      ),
-
-    branch:
-      s.branch
-  };
-
-
-  if (sha) {
-
-    body.sha =
-      sha;
-  }
-
-
-  setSendStatus(
-    'PC로 전송 중...\n' +
-    text.length.toLocaleString() +
-    '자'
-  );
-
-
-  const response =
-    await fetch(
-      url,
-      {
-        method:
-          'PUT',
-
-        headers: {
-          ...headers(
-            s.token
-          ),
-
-          'Content-Type':
-            'application/json'
-        },
-
-        body:
-          JSON.stringify(
-            body
-          )
-      }
-    );
-
-
-  if (!response.ok) {
-
-    let detail =
-      response.status +
-      ' ' +
-      response.statusText;
-
 
     try {
 
-      const error =
-        await response.json();
+      setSendStatus(
+        'GitHub 최신 상태 확인 중...\n\n' +
+        '전송 시도 ' +
+        attempt +
+        '/' +
+        maxAttempts
+      );
+
+
+      // ------------------------------------------------------
+      // 핵심:
+      // 매 PUT 직전에 항상 최신 SHA를 다시 읽는다.
+      // ------------------------------------------------------
+
+      const currentSha =
+        await getLatestGitHubFileSha(
+          s,
+          url
+        );
+
+
+      const body = {
+
+        message:
+          'GPT to PC ' +
+          new Date()
+            .toISOString(),
+
+        content:
+          utf8ToBase64(
+            text
+          ),
+
+        branch:
+          s.branch
+      };
+
+
+      if (currentSha) {
+
+        body.sha =
+          currentSha;
+      }
+
+
+      setSendStatus(
+        'PC로 전송 중...\n\n' +
+        text.length.toLocaleString() +
+        '자\n\n' +
+        '시도 ' +
+        attempt +
+        '/' +
+        maxAttempts
+      );
+
+
+      const response =
+        await fetch(
+          url,
+          {
+            method:
+              'PUT',
+
+            cache:
+              'no-store',
+
+            headers: {
+
+              ...headers(
+                s.token
+              ),
+
+              'Content-Type':
+                'application/json'
+            },
+
+            body:
+              JSON.stringify(
+                body
+              )
+          }
+        );
+
+
+      // ------------------------------------------------------
+      // 성공
+      // ------------------------------------------------------
+
+      if (response.ok) {
+
+        const result =
+          await response.json();
+
+
+        let message =
+          'PC 전송 완료!\n\n' +
+          s.path +
+          '\n' +
+          text.length.toLocaleString() +
+          '자\n\n' +
+          'Commit: ' +
+          result.commit.sha.substring(
+            0,
+            7
+          );
+
+
+        if (attempt > 1) {
+
+          message +=
+            '\n\nGitHub 충돌 자동 복구 완료' +
+            '\n' +
+            attempt +
+            '회차에 성공';
+        }
+
+
+        setSendStatus(
+          message
+        );
+
+
+        return result;
+      }
+
+
+      // ------------------------------------------------------
+      // 실패 내용 읽기
+      // ------------------------------------------------------
+
+      const detail =
+        await readGitHubResponseError(
+          response
+        );
+
+
+      const conflict =
+        isGitHubShaConflict(
+          response.status,
+          detail
+        );
+
+
+      // ------------------------------------------------------
+      // SHA 충돌이면 최신 SHA를 다시 읽고 재시도
+      // ------------------------------------------------------
+
+      if (
+        conflict &&
+        attempt < maxAttempts
+      ) {
+
+        lastError =
+          new Error(
+            detail
+          );
+
+
+        setSendStatus(
+          'GitHub 동시 수정 충돌 감지\n\n' +
+          detail +
+          '\n\n' +
+          '최신 SHA를 다시 읽은 뒤 자동 재시도합니다.\n' +
+          '시도 ' +
+          attempt +
+          '/' +
+          maxAttempts
+        );
+
+
+        // PC Runner가 result/*를 쓰는 순간과 겹칠 수 있으므로
+        // 재시도할수록 조금 더 기다린다.
+        await waitMs(
+          400 * attempt
+        );
+
+
+        continue;
+      }
+
+
+      // SHA 충돌이 아닌 실제 오류
+      throw new Error(
+        detail
+      );
+
+
+    } catch (error) {
+
+      lastError =
+        error;
+
+
+      const message =
+        String(
+          error &&
+          error.message
+            ? error.message
+            : error
+        );
+
+
+      const retryable =
+        isGitHubShaConflict(
+          0,
+          message
+        ) ||
+        message
+          .toLowerCase()
+          .includes(
+            'failed to fetch'
+          );
 
 
       if (
-        error.message
+        retryable &&
+        attempt < maxAttempts
       ) {
 
-        detail =
-          error.message;
+        setSendStatus(
+          '일시적인 GitHub 충돌/통신 오류\n\n' +
+          message +
+          '\n\n' +
+          '자동 재시도합니다.\n' +
+          '시도 ' +
+          attempt +
+          '/' +
+          maxAttempts
+        );
+
+
+        await waitMs(
+          500 * attempt
+        );
+
+
+        continue;
       }
 
-    } catch {
+
+      throw error;
     }
-
-
-    throw new Error(
-      detail
-    );
   }
 
 
-  const result =
-    await response.json();
-
-
-  setSendStatus(
-    'PC 전송 완료!\n\n' +
-    s.path +
-    '\n' +
-    text.length.toLocaleString() +
-    '자\n\nCommit: ' +
-    result.commit.sha.substring(
-      0,
-      7
+  throw (
+    lastError ||
+    new Error(
+      'GitHub 전송을 완료하지 못했습니다.'
     )
   );
 }
-
 
 function clearSendText() {
 
