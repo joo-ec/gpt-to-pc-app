@@ -1,5 +1,5 @@
 const CACHE_NAME =
-  'gpt-to-pc-v3';
+  'gpt-to-pc-v5';
 
 const APP_SHELL = [
   './',
@@ -43,10 +43,12 @@ self.addEventListener(
         .then(
           names =>
             Promise.all(
+
               names
                 .filter(
                   name =>
-                    name !== CACHE_NAME
+                    name !==
+                    CACHE_NAME
                 )
                 .map(
                   name =>
@@ -70,7 +72,8 @@ self.addEventListener(
   event => {
 
     if (
-      event.request.method !== 'GET'
+      event.request.method !==
+      'GET'
     ) {
       return;
     }

@@ -38,7 +38,8 @@ body {
 }
 
 .wrap {
-  max-width: 760px;
+  width: 100%;
+  max-width: 1100px;
   margin: auto;
 }
 
@@ -50,7 +51,13 @@ h1 {
 .sub {
   margin: 0 0 16px;
   color: #9ca3af;
-  line-height: 1.5;
+}
+
+.modebar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
 }
 
 .card {
@@ -72,7 +79,6 @@ input,
 textarea,
 button {
   width: 100%;
-  box-sizing: border-box;
   border-radius: 9px;
   font-size: 16px;
 }
@@ -86,7 +92,7 @@ textarea {
 }
 
 textarea {
-  min-height: 280px;
+  min-height: 260px;
   resize: vertical;
   font-family:
     "Cascadia Code",
@@ -95,15 +101,20 @@ textarea {
   line-height: 1.45;
 }
 
-button {
-  margin-top: 9px;
-  padding: 14px;
-  border: 0;
-  font-weight: 700;
-  color: white;
+#receiverText {
+  min-height: 500px;
 }
 
-.primary {
+button {
+  margin-top: 8px;
+  padding: 13px;
+  border: 0;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.green {
   background: #059669;
 }
 
@@ -119,9 +130,23 @@ button {
   background: #7f1d1d;
 }
 
-.grid {
+.active {
+  background: #2563eb;
+}
+
+.inactive {
+  background: #374151;
+}
+
+.grid2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.grid3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
 
@@ -134,19 +159,38 @@ button {
   line-height: 1.5;
 }
 
-.good {
+.connected {
   color: #86efac;
 }
 
-.warning {
-  color: #fde68a;
+.disconnected {
+  color: #fca5a5;
 }
 
-.count {
-  margin-top: 6px;
-  text-align: right;
+.meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.metaBox {
+  padding: 10px;
+  border-radius: 9px;
+  background: #111827;
+}
+
+.metaLabel {
   color: #9ca3af;
   font-size: 12px;
+}
+
+.metaValue {
+  margin-top: 4px;
+  word-break: break-all;
+}
+
+.hidden {
+  display: none;
 }
 
 details summary {
@@ -154,14 +198,38 @@ details summary {
   font-weight: 700;
 }
 
-@media (max-width: 600px) {
+.count {
+  margin-top: 5px;
+  text-align: right;
+  color: #9ca3af;
+  font-size: 12px;
+}
 
-  .grid {
+.newFlash {
+  animation: flash 1.4s ease;
+}
+
+@keyframes flash {
+
+  0% {
+    border-color: #10b981;
+  }
+
+  100% {
+    border-color: #374151;
+  }
+}
+
+@media (max-width: 700px) {
+
+  .grid2,
+  .grid3,
+  .meta {
     grid-template-columns: 1fr;
   }
 
-  textarea {
-    min-height: 240px;
+  #receiverText {
+    min-height: 340px;
   }
 }
 
@@ -169,21 +237,52 @@ details summary {
 
 </head>
 
+
 <body>
 
 <div class="wrap">
 
 <h1>GPT → PC</h1>
 
-<p class="sub">
-ChatGPT 코드 복사 → 이 앱 → PC로 전송
+<p
+  id="subtitle"
+  class="sub"
+>
+ChatGPT 코드를 휴대폰에서 PC로 전달합니다.
 </p>
 
+
+<div class="modebar">
+
+<button
+  id="sendModeButton"
+  class="active"
+  onclick="setMode('send')"
+>
+휴대폰 전송
+</button>
+
+<button
+  id="receiveModeButton"
+  class="inactive"
+  onclick="setMode('receive')"
+>
+PC 실시간 수신
+</button>
+
+</div>
+
+
+<!-- ========================================================
+     SEND MODE
+========================================================= -->
+
+<div id="sendMode">
 
 <div class="card">
 
 <button
-  class="primary"
+  class="green"
   onclick="clipboardAndSend()"
 >
 클립보드 읽고 PC로 전송
@@ -197,7 +296,7 @@ ChatGPT 코드 복사 → 이 앱 → PC로 전송
 </button>
 
 <div
-  id="status"
+  id="sendStatus"
   class="status"
   style="margin-top:10px"
 >
@@ -214,12 +313,12 @@ ChatGPT 코드 복사 → 이 앱 → PC로 전송
 </label>
 
 <textarea
-  id="content"
-  placeholder="ChatGPT에서 코드 블록의 복사 버튼을 누른 뒤 위의 전송 버튼을 누르세요."
+  id="sendText"
+  placeholder="ChatGPT 코드 블록에서 복사 버튼을 누른 다음 위의 전송 버튼을 누르세요."
 ></textarea>
 
 <div
-  id="count"
+  id="sendCount"
   class="count"
 >
 0자
@@ -231,11 +330,12 @@ GitHub 저장 파일
 </label>
 
 <input
-  id="path"
+  id="sendPath"
   value="inbox/latest.ps1"
 >
 
-<div class="grid">
+
+<div class="grid2">
 
 <button
   class="gray"
@@ -246,7 +346,7 @@ GitHub 저장 파일
 
 <button
   class="red"
-  onclick="clearText()"
+  onclick="clearSendText()"
 >
 내용 지우기
 </button>
@@ -255,6 +355,130 @@ GitHub 저장 파일
 
 </div>
 
+</div>
+
+
+<!-- ========================================================
+     RECEIVE MODE
+========================================================= -->
+
+<div
+  id="receiveMode"
+  class="hidden"
+>
+
+<div
+  id="receiverCard"
+  class="card"
+>
+
+<div
+  id="receiveStatus"
+  class="status"
+>
+수신 대기 중...
+</div>
+
+
+<div
+  class="meta"
+  style="margin-top:10px"
+>
+
+<div class="metaBox">
+
+<div class="metaLabel">
+파일
+</div>
+
+<div
+  id="receiveFile"
+  class="metaValue"
+>
+-
+</div>
+
+</div>
+
+
+<div class="metaBox">
+
+<div class="metaLabel">
+길이
+</div>
+
+<div
+  id="receiveLength"
+  class="metaValue"
+>
+-
+</div>
+
+</div>
+
+
+<div class="metaBox">
+
+<div class="metaLabel">
+마지막 수신
+</div>
+
+<div
+  id="receiveTime"
+  class="metaValue"
+>
+-
+</div>
+
+</div>
+
+</div>
+
+
+<label>
+PC에 도착한 최신 코드
+</label>
+
+<textarea
+  id="receiverText"
+  spellcheck="false"
+></textarea>
+
+
+<div class="grid3">
+
+<button
+  class="green"
+  onclick="copyReceiverText()"
+>
+클립보드 복사
+</button>
+
+<button
+  class="blue"
+  onclick="checkNow()"
+>
+지금 확인
+</button>
+
+<button
+  id="monitorButton"
+  class="red"
+  onclick="toggleMonitoring()"
+>
+자동 확인 중지
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ========================================================
+     SETTINGS
+========================================================= -->
 
 <div class="card">
 
@@ -264,14 +488,16 @@ GitHub 저장 파일
 GitHub 연결 설정
 </summary>
 
+
 <label>
 GitHub 사용자명
 </label>
 
 <input
   id="owner"
-  placeholder="예: joo-ec"
+  value="joo-ec"
 >
+
 
 <label>
 Private Repository
@@ -282,6 +508,7 @@ Private Repository
   value="gpt-to-pc-data"
 >
 
+
 <label>
 Branch
 </label>
@@ -290,6 +517,7 @@ Branch
   id="branch"
   value="main"
 >
+
 
 <label>
 Fine-grained PAT
@@ -300,6 +528,9 @@ Fine-grained PAT
   type="password"
   placeholder="github_pat_..."
 >
+
+
+<div class="grid2">
 
 <button
   class="blue"
@@ -312,32 +543,19 @@ Fine-grained PAT
   class="gray"
   onclick="testConnection()"
 >
-GitHub 연결 테스트
+연결 테스트
 </button>
+
+</div>
 
 <button
   class="red"
   onclick="clearToken()"
 >
-저장된 토큰 삭제
+이 기기에 저장된 토큰 삭제
 </button>
 
 </details>
-
-</div>
-
-
-<div class="card">
-
-<div class="status">
-사용법
-
-1. ChatGPT 코드 블록에서 "복사"
-2. GPT → PC 앱 실행
-3. "클립보드 읽고 PC로 전송"
-
-끝.
-</div>
 
 </div>
 
@@ -349,42 +567,79 @@ GitHub 연결 테스트
 const API_VERSION =
   '2026-03-10';
 
-const contentBox =
+const POLL_INTERVAL =
+  5000;
+
+
+let currentMode =
+  'send';
+
+let monitoring =
+  true;
+
+let monitorTimer =
+  null;
+
+let lastSha =
+  '';
+
+let firstReceiverLoad =
+  true;
+
+
+const sendText =
   document.getElementById(
-    'content'
+    'sendText'
   );
 
-const statusBox =
+const sendStatus =
   document.getElementById(
-    'status'
+    'sendStatus'
   );
 
-const countBox =
+const sendCount =
   document.getElementById(
-    'count'
+    'sendCount'
+  );
+
+const receiverText =
+  document.getElementById(
+    'receiverText'
+  );
+
+const receiveStatus =
+  document.getElementById(
+    'receiveStatus'
   );
 
 
-function setStatus(text) {
+function setSendStatus(text) {
 
-  statusBox.textContent =
+  sendStatus.textContent =
     text;
 }
 
 
-function updateCount() {
+function setReceiveStatus(text) {
 
-  countBox.textContent =
-    contentBox.value.length
+  receiveStatus.textContent =
+    text;
+}
+
+
+function updateSendCount() {
+
+  sendCount.textContent =
+    sendText.value.length
       .toLocaleString()
     +
     '자';
 }
 
 
-contentBox.addEventListener(
+sendText.addEventListener(
   'input',
-  updateCount
+  updateSendCount
 );
 
 
@@ -415,7 +670,7 @@ function loadSettings() {
 
 
   document.getElementById(
-    'path'
+    'sendPath'
   ).value =
     localStorage.getItem(
       'githubPath'
@@ -453,7 +708,7 @@ function saveSettings() {
 
   const path =
     document
-      .getElementById('path')
+      .getElementById('sendPath')
       .value
       .trim();
 
@@ -490,9 +745,24 @@ function saveSettings() {
   );
 
 
-  setStatus(
-    'GitHub 설정을 이 휴대폰에 저장했습니다.'
-  );
+  if (
+    currentMode === 'receive'
+  ) {
+
+    setReceiveStatus(
+      '설정을 저장했습니다.\n연결 확인 중...'
+    );
+
+    checkLatestFile(
+      true
+    );
+
+  } else {
+
+    setSendStatus(
+      'GitHub 설정을 저장했습니다.'
+    );
+  }
 }
 
 
@@ -520,7 +790,7 @@ function getSettings() {
 
     path:
       document
-        .getElementById('path')
+        .getElementById('sendPath')
         .value
         .trim(),
 
@@ -534,31 +804,31 @@ function getSettings() {
 
   if (!settings.owner) {
     throw new Error(
-      'GitHub 사용자명을 입력하세요.'
+      'GitHub 사용자명이 없습니다.'
     );
   }
 
   if (!settings.repo) {
     throw new Error(
-      'Private Repository 이름을 입력하세요.'
+      'Repository가 없습니다.'
     );
   }
 
   if (!settings.branch) {
     throw new Error(
-      'Branch를 입력하세요.'
+      'Branch가 없습니다.'
     );
   }
 
   if (!settings.path) {
     throw new Error(
-      '저장 파일 경로를 입력하세요.'
+      '파일 경로가 없습니다.'
     );
   }
 
   if (!settings.token) {
     throw new Error(
-      'Fine-grained PAT를 입력하세요.'
+      'GitHub PAT를 입력하세요.'
     );
   }
 
@@ -593,8 +863,10 @@ function apiUrl(
     path
       .split('/')
       .map(
-        part =>
-          encodeURIComponent(part)
+        value =>
+          encodeURIComponent(
+            value
+          )
       )
       .join('/');
 
@@ -614,39 +886,40 @@ function utf8ToBase64(text) {
 
   const bytes =
     new TextEncoder()
-      .encode(text);
+      .encode(
+        text
+      );
 
 
   let binary =
     '';
 
 
-  const chunkSize =
+  const size =
     0x8000;
 
 
   for (
     let i = 0;
     i < bytes.length;
-    i += chunkSize
+    i += size
   ) {
 
     const chunk =
       bytes.subarray(
         i,
         Math.min(
-          i + chunkSize,
+          i + size,
           bytes.length
         )
       );
 
 
     binary +=
-      String.fromCharCode
-        .apply(
-          null,
-          chunk
-        );
+      String.fromCharCode.apply(
+        null,
+        chunk
+      );
   }
 
 
@@ -655,6 +928,154 @@ function utf8ToBase64(text) {
   );
 }
 
+
+function base64ToUtf8(value) {
+
+  const cleaned =
+    String(value || '')
+      .replace(
+        /\s/g,
+        ''
+      );
+
+
+  const binary =
+    atob(
+      cleaned
+    );
+
+
+  const bytes =
+    new Uint8Array(
+      binary.length
+    );
+
+
+  for (
+    let i = 0;
+    i < binary.length;
+    i++
+  ) {
+
+    bytes[i] =
+      binary.charCodeAt(
+        i
+      );
+  }
+
+
+  return new TextDecoder(
+    'utf-8'
+  ).decode(
+    bytes
+  );
+}
+
+
+/* ==========================================================
+   MODE
+========================================================== */
+
+function setMode(mode) {
+
+  currentMode =
+    mode;
+
+
+  const sendMode =
+    document.getElementById(
+      'sendMode'
+    );
+
+  const receiveMode =
+    document.getElementById(
+      'receiveMode'
+    );
+
+  const sendButton =
+    document.getElementById(
+      'sendModeButton'
+    );
+
+  const receiveButton =
+    document.getElementById(
+      'receiveModeButton'
+    );
+
+
+  if (
+    mode === 'receive'
+  ) {
+
+    sendMode.classList.add(
+      'hidden'
+    );
+
+    receiveMode.classList.remove(
+      'hidden'
+    );
+
+    sendButton.className =
+      'inactive';
+
+    receiveButton.className =
+      'active';
+
+    document.getElementById(
+      'subtitle'
+    ).textContent =
+      '휴대폰에서 전송된 코드를 PC에서 자동으로 보여줍니다.';
+
+
+    startMonitoring();
+
+
+  } else {
+
+    receiveMode.classList.add(
+      'hidden'
+    );
+
+    sendMode.classList.remove(
+      'hidden'
+    );
+
+    receiveButton.className =
+      'inactive';
+
+    sendButton.className =
+      'active';
+
+    document.getElementById(
+      'subtitle'
+    ).textContent =
+      'ChatGPT 코드를 휴대폰에서 PC로 전달합니다.';
+  }
+
+
+  const url =
+    new URL(
+      location.href
+    );
+
+
+  url.searchParams.set(
+    'mode',
+    mode
+  );
+
+
+  history.replaceState(
+    {},
+    '',
+    url
+  );
+}
+
+
+/* ==========================================================
+   SEND
+========================================================== */
 
 async function readClipboard() {
 
@@ -666,7 +1087,7 @@ async function readClipboard() {
     ) {
 
       throw new Error(
-        '이 브라우저에서는 클립보드 읽기를 지원하지 않습니다.'
+        '클립보드 읽기를 지원하지 않습니다.'
       );
     }
 
@@ -685,15 +1106,15 @@ async function readClipboard() {
     }
 
 
-    contentBox.value =
+    sendText.value =
       text;
 
 
-    updateCount();
+    updateSendCount();
 
 
-    setStatus(
-      '클립보드 가져오기 완료\n' +
+    setSendStatus(
+      '클립보드 읽기 완료\n' +
       text.length.toLocaleString() +
       '자'
     );
@@ -703,305 +1124,13 @@ async function readClipboard() {
 
   } catch (error) {
 
-    setStatus(
+    setSendStatus(
       '클립보드 읽기 실패\n\n' +
-      error.message +
-      '\n\n' +
-      '입력창을 길게 눌러 붙여넣기도 가능합니다.'
-    );
-
-
-    throw error;
-  }
-}
-
-
-async function testConnection() {
-
-  try {
-
-    saveSettings();
-
-
-    const s =
-      getSettings();
-
-
-    setStatus(
-      'GitHub 연결 테스트 중...'
-    );
-
-
-    const url =
-      'https://api.github.com/repos/' +
-      encodeURIComponent(s.owner) +
-      '/' +
-      encodeURIComponent(s.repo);
-
-
-    const response =
-      await fetch(
-        url,
-        {
-          headers:
-            headers(
-              s.token
-            )
-        }
-      );
-
-
-    if (!response.ok) {
-
-      let message =
-        response.status +
-        ' ' +
-        response.statusText;
-
-
-      try {
-
-        const body =
-          await response.json();
-
-        if (body.message) {
-          message =
-            body.message;
-        }
-
-      } catch {
-      }
-
-
-      throw new Error(
-        message
-      );
-    }
-
-
-    const repo =
-      await response.json();
-
-
-    setStatus(
-      'GitHub 연결 성공\n\n' +
-      repo.full_name +
-      '\nPrivate: ' +
-      repo.private +
-      '\nDefault branch: ' +
-      repo.default_branch
-    );
-
-
-  } catch (error) {
-
-    setStatus(
-      'GitHub 연결 실패\n\n' +
       error.message
     );
 
-
-    document
-      .getElementById(
-        'settingsDetails'
-      )
-      .open =
-      true;
+    throw error;
   }
-}
-
-
-async function sendToGitHub(
-  text
-) {
-
-  const s =
-    getSettings();
-
-
-  localStorage.setItem(
-    'githubPath',
-    s.path
-  );
-
-
-  const url =
-    apiUrl(
-      s.owner,
-      s.repo,
-      s.path
-    );
-
-
-  let sha =
-    null;
-
-
-  setStatus(
-    'GitHub 최신 파일 확인 중...'
-  );
-
-
-  const getResponse =
-    await fetch(
-      url +
-      '?ref=' +
-      encodeURIComponent(
-        s.branch
-      ),
-      {
-        method: 'GET',
-        headers:
-          headers(
-            s.token
-          )
-      }
-    );
-
-
-  if (getResponse.ok) {
-
-    const existing =
-      await getResponse.json();
-
-    sha =
-      existing.sha;
-  }
-
-
-  if (
-    !getResponse.ok &&
-    getResponse.status !== 404
-  ) {
-
-    let message =
-      getResponse.status +
-      ' ' +
-      getResponse.statusText;
-
-
-    try {
-
-      const body =
-        await getResponse.json();
-
-      if (body.message) {
-        message =
-          body.message;
-      }
-
-    } catch {
-    }
-
-
-    throw new Error(
-      '파일 확인 실패: ' +
-      message
-    );
-  }
-
-
-  const body = {
-
-    message:
-      'GPT to PC ' +
-      new Date()
-        .toISOString(),
-
-    content:
-      utf8ToBase64(
-        text
-      ),
-
-    branch:
-      s.branch
-  };
-
-
-  if (sha) {
-    body.sha = sha;
-  }
-
-
-  setStatus(
-    'GitHub로 전송 중...\n' +
-    text.length.toLocaleString() +
-    '자'
-  );
-
-
-  const putResponse =
-    await fetch(
-      url,
-      {
-        method: 'PUT',
-
-        headers: {
-          ...headers(
-            s.token
-          ),
-
-          'Content-Type':
-            'application/json'
-        },
-
-        body:
-          JSON.stringify(
-            body
-          )
-      }
-    );
-
-
-  if (!putResponse.ok) {
-
-    let message =
-      putResponse.status +
-      ' ' +
-      putResponse.statusText;
-
-
-    try {
-
-      const error =
-        await putResponse.json();
-
-      if (error.message) {
-        message =
-          error.message;
-      }
-
-    } catch {
-    }
-
-
-    throw new Error(
-      '전송 실패: ' +
-      message
-    );
-  }
-
-
-  const result =
-    await putResponse.json();
-
-
-  setStatus(
-    'PC 전송 완료!\n\n' +
-    s.owner +
-    '/' +
-    s.repo +
-    '\n' +
-    s.path +
-    '\n\n' +
-    text.length.toLocaleString() +
-    '자\n\n' +
-    'Commit:\n' +
-    result.commit.sha.substring(
-      0,
-      7
-    )
-  );
 }
 
 
@@ -1027,7 +1156,7 @@ async function clipboardAndSend() {
       )
     ) {
 
-      setStatus(
+      setSendStatus(
         '전송 실패\n\n' +
         error.message
       );
@@ -1041,7 +1170,7 @@ async function sendCurrentText() {
   try {
 
     const text =
-      contentBox.value;
+      sendText.value;
 
 
     if (!text.trim()) {
@@ -1058,7 +1187,7 @@ async function sendCurrentText() {
 
   } catch (error) {
 
-    setStatus(
+    setSendStatus(
       '전송 실패\n\n' +
       error.message
     );
@@ -1066,16 +1195,642 @@ async function sendCurrentText() {
 }
 
 
-function clearText() {
+async function sendToGitHub(text) {
 
-  contentBox.value =
+  const s =
+    getSettings();
+
+
+  localStorage.setItem(
+    'githubPath',
+    s.path
+  );
+
+
+  const url =
+    apiUrl(
+      s.owner,
+      s.repo,
+      s.path
+    );
+
+
+  let sha =
+    null;
+
+
+  setSendStatus(
+    '기존 파일 확인 중...'
+  );
+
+
+  const existingResponse =
+    await fetch(
+      url +
+      '?ref=' +
+      encodeURIComponent(
+        s.branch
+      ),
+      {
+        headers:
+          headers(
+            s.token
+          )
+      }
+    );
+
+
+  if (
+    existingResponse.ok
+  ) {
+
+    const existing =
+      await existingResponse.json();
+
+
+    sha =
+      existing.sha;
+  }
+
+
+  if (
+    !existingResponse.ok &&
+    existingResponse.status !== 404
+  ) {
+
+    throw new Error(
+      'GitHub 파일 확인 실패: ' +
+      existingResponse.status
+    );
+  }
+
+
+  const body = {
+
+    message:
+      'GPT to PC ' +
+      new Date()
+        .toISOString(),
+
+    content:
+      utf8ToBase64(
+        text
+      ),
+
+    branch:
+      s.branch
+  };
+
+
+  if (sha) {
+
+    body.sha =
+      sha;
+  }
+
+
+  setSendStatus(
+    'PC로 전송 중...\n' +
+    text.length.toLocaleString() +
+    '자'
+  );
+
+
+  const response =
+    await fetch(
+      url,
+      {
+        method:
+          'PUT',
+
+        headers: {
+          ...headers(
+            s.token
+          ),
+
+          'Content-Type':
+            'application/json'
+        },
+
+        body:
+          JSON.stringify(
+            body
+          )
+      }
+    );
+
+
+  if (!response.ok) {
+
+    let detail =
+      response.status +
+      ' ' +
+      response.statusText;
+
+
+    try {
+
+      const error =
+        await response.json();
+
+
+      if (
+        error.message
+      ) {
+
+        detail =
+          error.message;
+      }
+
+    } catch {
+    }
+
+
+    throw new Error(
+      detail
+    );
+  }
+
+
+  const result =
+    await response.json();
+
+
+  setSendStatus(
+    'PC 전송 완료!\n\n' +
+    s.path +
+    '\n' +
+    text.length.toLocaleString() +
+    '자\n\nCommit: ' +
+    result.commit.sha.substring(
+      0,
+      7
+    )
+  );
+}
+
+
+function clearSendText() {
+
+  sendText.value =
     '';
 
-  updateCount();
+  updateSendCount();
 
-  setStatus(
+  setSendStatus(
     '내용을 지웠습니다.'
   );
+}
+
+
+/* ==========================================================
+   PC RECEIVER
+========================================================== */
+
+function startMonitoring() {
+
+  monitoring =
+    true;
+
+
+  document.getElementById(
+    'monitorButton'
+  ).textContent =
+    '자동 확인 중지';
+
+
+  document.getElementById(
+    'monitorButton'
+  ).className =
+    'red';
+
+
+  if (monitorTimer) {
+
+    clearInterval(
+      monitorTimer
+    );
+  }
+
+
+  checkLatestFile(
+    true
+  );
+
+
+  monitorTimer =
+    setInterval(
+      () => {
+
+        if (
+          monitoring &&
+          currentMode === 'receive'
+        ) {
+
+          checkLatestFile(
+            false
+          );
+        }
+
+      },
+      POLL_INTERVAL
+    );
+}
+
+
+function stopMonitoring() {
+
+  monitoring =
+    false;
+
+
+  if (monitorTimer) {
+
+    clearInterval(
+      monitorTimer
+    );
+
+    monitorTimer =
+      null;
+  }
+
+
+  document.getElementById(
+    'monitorButton'
+  ).textContent =
+    '자동 확인 시작';
+
+
+  document.getElementById(
+    'monitorButton'
+  ).className =
+    'green';
+
+
+  setReceiveStatus(
+    '자동 확인이 중지되었습니다.'
+  );
+}
+
+
+function toggleMonitoring() {
+
+  if (monitoring) {
+
+    stopMonitoring();
+
+  } else {
+
+    startMonitoring();
+  }
+}
+
+
+function checkNow() {
+
+  checkLatestFile(
+    true
+  );
+}
+
+
+async function checkLatestFile(
+  manual
+) {
+
+  try {
+
+    const s =
+      getSettings();
+
+
+    const url =
+      apiUrl(
+        s.owner,
+        s.repo,
+        s.path
+      );
+
+
+    if (
+      manual ||
+      firstReceiverLoad
+    ) {
+
+      setReceiveStatus(
+        'GitHub 확인 중...'
+      );
+    }
+
+
+    const response =
+      await fetch(
+        url +
+        '?ref=' +
+        encodeURIComponent(
+          s.branch
+        ) +
+        '&_=' +
+        Date.now(),
+        {
+          cache:
+            'no-store',
+
+          headers:
+            headers(
+              s.token
+            )
+        }
+      );
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        'GitHub 응답 ' +
+        response.status
+      );
+    }
+
+
+    const data =
+      await response.json();
+
+
+    const changed =
+      data.sha !== lastSha;
+
+
+    if (
+      changed ||
+      firstReceiverLoad
+    ) {
+
+      const text =
+        base64ToUtf8(
+          data.content
+        );
+
+
+      receiverText.value =
+        text;
+
+
+      document.getElementById(
+        'receiveFile'
+      ).textContent =
+        data.path;
+
+
+      document.getElementById(
+        'receiveLength'
+      ).textContent =
+        text.length
+          .toLocaleString()
+        +
+        '자';
+
+
+      document.getElementById(
+        'receiveTime'
+      ).textContent =
+        new Date()
+          .toLocaleTimeString();
+
+
+      if (
+        !firstReceiverLoad &&
+        changed
+      ) {
+
+        setReceiveStatus(
+          '● 새 코드 도착!\n' +
+          new Date()
+            .toLocaleString()
+        );
+
+
+        const card =
+          document.getElementById(
+            'receiverCard'
+          );
+
+
+        card.classList.remove(
+          'newFlash'
+        );
+
+
+        void card.offsetWidth;
+
+
+        card.classList.add(
+          'newFlash'
+        );
+
+
+        try {
+
+          if (
+            'Notification' in window &&
+            Notification.permission ===
+              'granted'
+          ) {
+
+            new Notification(
+              'GPT → PC',
+              {
+                body:
+                  '새 코드가 도착했습니다.'
+              }
+            );
+          }
+
+        } catch {
+        }
+
+
+      } else {
+
+        setReceiveStatus(
+          '● 연결됨\n' +
+          '5초마다 자동 확인'
+        );
+      }
+
+
+      lastSha =
+        data.sha;
+
+
+      firstReceiverLoad =
+        false;
+
+
+    } else {
+
+      setReceiveStatus(
+        '● 연결됨\n' +
+        '새 코드 대기 중\n' +
+        new Date()
+          .toLocaleTimeString()
+      );
+    }
+
+
+  } catch (error) {
+
+    setReceiveStatus(
+      '연결 오류\n\n' +
+      error.message +
+      '\n\nGitHub 연결 설정을 확인하세요.'
+    );
+
+
+    document.getElementById(
+      'settingsDetails'
+    ).open =
+      true;
+  }
+}
+
+
+async function copyReceiverText() {
+
+  const text =
+    receiverText.value;
+
+
+  if (!text) {
+
+    setReceiveStatus(
+      '복사할 코드가 없습니다.'
+    );
+
+    return;
+  }
+
+
+  try {
+
+    await navigator
+      .clipboard
+      .writeText(
+        text
+      );
+
+
+    setReceiveStatus(
+      '클립보드 복사 완료\n' +
+      text.length
+        .toLocaleString()
+      +
+      '자'
+    );
+
+
+  } catch {
+
+    receiverText.focus();
+
+    receiverText.select();
+
+
+    setReceiveStatus(
+      '자동 복사가 제한되었습니다.\n' +
+      '코드를 전체 선택했습니다. Ctrl+C를 누르세요.'
+    );
+  }
+}
+
+
+/* ==========================================================
+   CONNECTION
+========================================================== */
+
+async function testConnection() {
+
+  try {
+
+    saveSettings();
+
+
+    const s =
+      getSettings();
+
+
+    const status =
+      currentMode ===
+      'receive'
+        ? setReceiveStatus
+        : setSendStatus;
+
+
+    status(
+      'GitHub 연결 테스트 중...'
+    );
+
+
+    const url =
+      'https://api.github.com/repos/' +
+      encodeURIComponent(
+        s.owner
+      ) +
+      '/' +
+      encodeURIComponent(
+        s.repo
+      );
+
+
+    const response =
+      await fetch(
+        url,
+        {
+          headers:
+            headers(
+              s.token
+            )
+        }
+      );
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        'GitHub 응답 ' +
+        response.status
+      );
+    }
+
+
+    const repo =
+      await response.json();
+
+
+    status(
+      'GitHub 연결 성공\n\n' +
+      repo.full_name +
+      '\nPrivate: ' +
+      repo.private +
+      '\nBranch: ' +
+      repo.default_branch
+    );
+
+
+  } catch (error) {
+
+    const status =
+      currentMode ===
+      'receive'
+        ? setReceiveStatus
+        : setSendStatus;
+
+
+    status(
+      'GitHub 연결 실패\n\n' +
+      error.message
+    );
+  }
 }
 
 
@@ -1085,15 +1840,61 @@ function clearToken() {
     'githubToken'
   );
 
-  document
-    .getElementById(
-      'token'
-    )
-    .value =
+
+  document.getElementById(
+    'token'
+  ).value =
     '';
 
-  setStatus(
-    '휴대폰에 저장된 GitHub 토큰을 삭제했습니다.'
+
+  if (
+    currentMode ===
+    'receive'
+  ) {
+
+    setReceiveStatus(
+      '이 PC에서 저장된 토큰을 삭제했습니다.'
+    );
+
+  } else {
+
+    setSendStatus(
+      '휴대폰에서 저장된 토큰을 삭제했습니다.'
+    );
+  }
+}
+
+
+/* ==========================================================
+   START
+========================================================== */
+
+loadSettings();
+
+updateSendCount();
+
+
+const requestedMode =
+  new URLSearchParams(
+    location.search
+  ).get(
+    'mode'
+  );
+
+
+if (
+  requestedMode ===
+  'receive'
+) {
+
+  setMode(
+    'receive'
+  );
+
+} else {
+
+  setMode(
+    'send'
   );
 }
 
@@ -1115,11 +1916,6 @@ if (
       () => {}
     );
 }
-
-
-loadSettings();
-
-updateCount();
 
 </script>
 
