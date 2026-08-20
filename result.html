@@ -26,11 +26,7 @@ body {
   padding: 14px;
   background: #111827;
   color: #f9fafb;
-  font-family:
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    sans-serif;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 .wrap {
@@ -39,7 +35,7 @@ body {
 }
 
 h1 {
-  margin: 4px 0;
+  margin: 3px 0;
 }
 
 .sub {
@@ -49,16 +45,18 @@ h1 {
 .card {
   margin-bottom: 12px;
   padding: 14px;
-  background: #1f2937;
   border: 1px solid #374151;
   border-radius: 14px;
+  background: #1f2937;
 }
 
 .status {
-  padding: 13px;
-  background: #111827;
+  padding: 14px;
   border-radius: 10px;
+  background: #111827;
   white-space: pre-wrap;
+  font-weight: 700;
+  line-height: 1.6;
 }
 
 .success {
@@ -73,13 +71,6 @@ h1 {
   color: #fde68a;
 }
 
-label {
-  display: block;
-  margin: 10px 0 5px;
-  color: #9ca3af;
-  font-size: 13px;
-}
-
 textarea,
 input,
 button {
@@ -90,20 +81,20 @@ button {
 
 textarea,
 input {
+  padding: 10px;
   border: 1px solid #4b5563;
   background: #111827;
   color: white;
-  padding: 10px;
 }
 
 textarea {
   min-height: 220px;
-  font-family: Consolas, monospace;
   resize: vertical;
+  font-family: Consolas, monospace;
 }
 
 #errorText {
-  min-height: 300px;
+  min-height: 280px;
 }
 
 button {
@@ -136,12 +127,19 @@ button {
   gap: 8px;
 }
 
+label {
+  display: block;
+  margin: 10px 0 5px;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
 details summary {
   cursor: pointer;
   font-weight: 700;
 }
 
-@media (max-width: 600px) {
+@media (max-width:600px) {
 
   .grid {
     grid-template-columns: 1fr;
@@ -159,7 +157,7 @@ details summary {
 <h1>PC 실행 결과</h1>
 
 <p class="sub">
-PC에서 실행한 PowerShell 결과를 자동으로 확인합니다.
+5초마다 자동으로 최신 PowerShell 실행 결과를 확인합니다.
 </p>
 
 
@@ -169,12 +167,12 @@ PC에서 실행한 PowerShell 결과를 자동으로 확인합니다.
   id="status"
   class="status"
 >
-GitHub 확인 중...
+결과 확인 중...
 </div>
 
 <button
   class="blue"
-  onclick="loadResult(true)"
+  onclick="loadResult()"
 >
 지금 새로고침
 </button>
@@ -185,14 +183,13 @@ GitHub 확인 중...
 <div class="card">
 
 <label>
-PowerShell 오류
+오류
 </label>
 
 <textarea
   id="errorText"
   readonly
 ></textarea>
-
 
 <div class="grid">
 
@@ -205,7 +202,7 @@ PowerShell 오류
 
 <button
   class="green"
-  onclick="copyErrorAndOpenChatGPT()"
+  onclick="copyErrorAndChatGPT()"
 >
 오류 복사 후 ChatGPT 열기
 </button>
@@ -230,7 +227,7 @@ PowerShell 출력
   class="gray"
   onclick="copyAll()"
 >
-전체 실행 결과 복사
+전체 결과 복사
 </button>
 
 </div>
@@ -244,41 +241,17 @@ PowerShell 출력
 GitHub 설정
 </summary>
 
-<label>
-GitHub 사용자명
-</label>
+<label>GitHub 사용자명</label>
+<input id="owner" value="joo-ec">
 
-<input
-  id="owner"
-  value="joo-ec"
->
+<label>Repository</label>
+<input id="repo" value="gpt-to-pc-data">
 
-<label>
-Repository
-</label>
+<label>Branch</label>
+<input id="branch" value="main">
 
-<input
-  id="repo"
-  value="gpt-to-pc-data"
->
-
-<label>
-Branch
-</label>
-
-<input
-  id="branch"
-  value="main"
->
-
-<label>
-PAT
-</label>
-
-<input
-  id="token"
-  type="password"
->
+<label>PAT</label>
+<input id="token" type="password">
 
 <button
   class="blue"
@@ -296,16 +269,13 @@ PAT
   class="gray"
   onclick="location.href='./'"
 >
-GPT → PC 전송 화면
+전송 화면으로
 </button>
 
 </div>
 
 
 <script>
-
-const POLL =
-  5000;
 
 const $ =
   id =>
@@ -315,24 +285,20 @@ const $ =
 function loadSettings() {
 
   $('owner').value =
-    localStorage.getItem(
-      'githubOwner'
-    ) || 'joo-ec';
+    localStorage.getItem('githubOwner') ||
+    'joo-ec';
 
   $('repo').value =
-    localStorage.getItem(
-      'githubRepo'
-    ) || 'gpt-to-pc-data';
+    localStorage.getItem('githubRepo') ||
+    'gpt-to-pc-data';
 
   $('branch').value =
-    localStorage.getItem(
-      'githubBranch'
-    ) || 'main';
+    localStorage.getItem('githubBranch') ||
+    'main';
 
   $('token').value =
-    localStorage.getItem(
-      'githubToken'
-    ) || '';
+    localStorage.getItem('githubToken') ||
+    '';
 }
 
 
@@ -358,11 +324,11 @@ function saveSettings() {
     $('token').value.trim()
   );
 
-  loadResult(true);
+  loadResult();
 }
 
 
-function cfg() {
+function config() {
 
   const result = {
 
@@ -379,6 +345,7 @@ function cfg() {
       $('token').value.trim()
   };
 
+
   if (
     !result.owner ||
     !result.repo ||
@@ -386,7 +353,7 @@ function cfg() {
   ) {
 
     throw new Error(
-      'GitHub 설정을 먼저 입력하세요.'
+      'GitHub 설정을 확인하세요.'
     );
   }
 
@@ -405,12 +372,12 @@ function headers(token) {
       'Bearer ' + token,
 
     'X-GitHub-Api-Version':
-      '2026-03-10'
+      '2022-11-28'
   };
 }
 
 
-function urlFor(
+function apiUrl(
   c,
   path
 ) {
@@ -433,7 +400,7 @@ function urlFor(
 }
 
 
-function decodeContent(value) {
+function decodeBase64(value) {
 
   const binary =
     atob(
@@ -462,14 +429,14 @@ function decodeContent(value) {
 }
 
 
-async function getText(
+async function readText(
   c,
   path
 ) {
 
   const response =
     await fetch(
-      urlFor(c, path),
+      apiUrl(c, path),
       {
         cache:
           'no-store',
@@ -479,46 +446,41 @@ async function getText(
       }
     );
 
+
   if (response.status === 404) {
     return '';
   }
 
+
   if (!response.ok) {
 
     throw new Error(
-      'GitHub ' +
+      'GitHub 응답 ' +
       response.status
     );
   }
 
+
   const data =
     await response.json();
 
-  return decodeContent(
+
+  return decodeBase64(
     data.content
   );
 }
 
 
-async function loadResult(
-  manual
-) {
+async function loadResult() {
 
   try {
 
     const c =
-      cfg();
-
-
-    if (manual) {
-
-      $('status').textContent =
-        'PC 실행 결과 확인 중...';
-    }
+      config();
 
 
     const resultText =
-      await getText(
+      await readText(
         c,
         'result/latest.json'
       );
@@ -527,7 +489,7 @@ async function loadResult(
     if (!resultText) {
 
       $('status').textContent =
-        '아직 PC 실행 결과가 없습니다.';
+        '아직 실행 결과가 없습니다.';
 
       return;
     }
@@ -539,15 +501,36 @@ async function loadResult(
       );
 
 
+    if (
+      result.status ===
+      'running'
+    ) {
+
+      $('status').className =
+        'status running';
+
+      $('status').textContent =
+        '⏳ PowerShell 실행 중\n\n' +
+        (
+          result.inputSha
+            ? 'SHA: ' +
+              result.inputSha.substring(0,8)
+            : ''
+        );
+
+      return;
+    }
+
+
     const output =
-      await getText(
+      await readText(
         c,
         'result/output.txt'
       );
 
 
     const errorText =
-      await getText(
+      await readText(
         c,
         'result/error.txt'
       );
@@ -560,27 +543,38 @@ async function loadResult(
       errorText;
 
 
-    let status =
-      '상태: ' +
-      result.status +
+    const success =
+      result.status ===
+      'success';
+
+
+    $('status').className =
+      'status ' +
+      (
+        success
+          ? 'success'
+          : 'failed'
+      );
+
+
+    let text =
+      (
+        success
+          ? '✅ 실행 성공'
+          : '❌ 실행 실패'
+      ) +
+      '\n\n';
+
+
+    text +=
+      'ExitCode: ' +
+      result.exitCode +
       '\n';
-
-
-    if (
-      result.exitCode !==
-      undefined
-    ) {
-
-      status +=
-        'ExitCode: ' +
-        result.exitCode +
-        '\n';
-    }
 
 
     if (result.endedAt) {
 
-      status +=
+      text +=
         '완료: ' +
         new Date(
           result.endedAt
@@ -594,7 +588,7 @@ async function loadResult(
       undefined
     ) {
 
-      status +=
+      text +=
         '실행시간: ' +
         result.durationSeconds +
         '초\n';
@@ -603,33 +597,25 @@ async function loadResult(
 
     if (result.inputSha) {
 
-      status +=
+      text +=
         'SHA: ' +
-        result.inputSha
-          .substring(0, 8);
+        result.inputSha.substring(
+          0,
+          8
+        );
     }
 
 
     $('status').textContent =
-      status;
+      text;
+  }
+  catch (error) {
 
     $('status').className =
-      'status ' +
-      (
-        result.status ===
-        'success'
-          ? 'success'
-          : result.status ===
-            'running'
-            ? 'running'
-            : 'failed'
-      );
-
-
-  } catch (error) {
+      'status failed';
 
     $('status').textContent =
-      '결과 확인 오류\n\n' +
+      '결과 조회 오류\n\n' +
       error.message;
   }
 }
@@ -640,26 +626,29 @@ async function copyError() {
   const text =
     $('errorText').value;
 
+
   if (!text) {
 
     alert(
-      '복사할 오류가 없습니다.'
+      '오류 내용이 없습니다.'
     );
 
     return;
   }
 
+
   await navigator
     .clipboard
     .writeText(text);
 
+
   alert(
-    'PC 오류를 복사했습니다.'
+    '오류를 복사했습니다.'
   );
 }
 
 
-async function copyErrorAndOpenChatGPT() {
+async function copyErrorAndChatGPT() {
 
   let text =
     $('errorText').value;
@@ -675,7 +664,7 @@ async function copyErrorAndOpenChatGPT() {
   if (!text) {
 
     alert(
-      '복사할 실행 결과가 없습니다.'
+      '복사할 결과가 없습니다.'
     );
 
     return;
@@ -696,37 +685,35 @@ async function copyErrorAndOpenChatGPT() {
 
 async function copyAll() {
 
-  const combined =
-    '=== PC ERROR ===\n' +
+  const text =
+    '=== ERROR ===\n' +
     $('errorText').value +
     '\n\n' +
-    '=== PC OUTPUT ===\n' +
+    '=== OUTPUT ===\n' +
     $('outputText').value;
 
 
   await navigator
     .clipboard
-    .writeText(
-      combined
-    );
+    .writeText(text);
+
 
   alert(
-    '전체 실행 결과를 복사했습니다.'
+    '전체 결과를 복사했습니다.'
   );
 }
 
 
 loadSettings();
 
-loadResult(true);
+loadResult();
 
 setInterval(
-  () => loadResult(false),
-  POLL
+  loadResult,
+  5000
 );
 
 </script>
 
 </body>
-
 </html>
