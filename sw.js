@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gpt-to-pc-restored-20260821110057';
+const CACHE_NAME = 'gpt-to-pc-analysis-v2-20260821110544';
 
 const APP_SHELL = [
   './',
