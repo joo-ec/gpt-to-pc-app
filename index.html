@@ -5653,5 +5653,7297 @@ PC 실행 결과
 </script>
 
 <!-- GPT_TEXT_ACCORDION_V2_END -->
+<!-- GPT_PROJECT_ANALYSIS_START -->
+
+<style>
+
+#gptAnalysisMode {
+  display: none;
+}
+
+#gptAnalysisMode.analysis-visible {
+  display: block;
+}
+
+.analysis-card {
+  padding: 14px !important;
+}
+
+.analysis-title {
+  margin-bottom: 4px;
+  font-size: 17px;
+  font-weight: 750;
+}
+
+.analysis-description {
+  margin-bottom: 14px;
+  color: #9198a6;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.analysis-option {
+  margin-top: 9px;
+  padding: 10px;
+
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px;
+
+  background: rgba(8,10,14,.4);
+}
+
+.analysis-option input {
+  width: 18px !important;
+  height: 18px !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+}
+
+.analysis-option span {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.analysis-status {
+  padding: 11px;
+
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px;
+
+  background: rgba(8,10,14,.55);
+
+  white-space: pre-wrap;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.analysis-accordion {
+  margin-bottom: 10px;
+
+  overflow: hidden;
+
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 13px;
+
+  background: rgba(24,27,35,.78);
+}
+
+.analysis-accordion-header {
+  width: 100% !important;
+  min-height: 46px !important;
+
+  margin: 0 !important;
+  padding: 10px 12px !important;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  border: 0 !important;
+  border-radius: 0 !important;
+
+  background: rgba(255,255,255,.035) !important;
+  color: #f4f5f7 !important;
+}
+
+.analysis-accordion-body {
+  display: none;
+  padding: 12px;
+
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+
+.analysis-accordion.open .analysis-accordion-body {
+  display: block;
+}
+
+.analysis-arrow {
+  transition: transform .18s ease;
+}
+
+.analysis-accordion.open .analysis-arrow {
+  transform: rotate(180deg);
+}
+
+#gptAnalysisResult {
+  min-height: 240px !important;
+  max-height: 55vh !important;
+
+  font-family:
+    "Cascadia Code",
+    Consolas,
+    monospace !important;
+}
+
+.analysis-meta {
+  margin-right: 7px;
+
+  color: #8c94a2;
+  font-size: 11px;
+}
+
+@media(max-width:600px) {
+
+  #gptAnalysisResult {
+    min-height: 200px !important;
+  }
+}
+
+</style>
+
+
+<script>
+
+(function () {
+
+  'use strict';
+
+
+  const $ =
+    id =>
+      document.getElementById(id);
+
+
+  let pollTimer =
+    null;
+
+
+  let lastStatusText =
+    '';
+
+
+  // =========================================================
+  // USER / SETTINGS
+  // =========================================================
+
+  function userId() {
+
+    const input =
+      $('bridgeUserId');
+
+
+    let value =
+      input
+        ? input.value
+        : localStorage.getItem(
+            'bridgeUserId'
+          );
+
+
+    value =
+      String(
+        value || 'user1'
+      )
+        .trim()
+        .toLowerCase()
+        .replace(
+          /[^a-z0-9._-]/g,
+          '-'
+        )
+        .replace(
+          /-+/g,
+          '-'
+        );
+
+
+    return value || 'user1';
+  }
+
+
+  function settings() {
+
+    const s =
+      getSettings();
+
+
+    s.userId =
+      userId();
+
+
+    return s;
+  }
+
+
+  // =========================================================
+  // BASE64
+  // =========================================================
+
+  function encode64(text) {
+
+    const bytes =
+      new TextEncoder()
+        .encode(
+          text
+        );
+
+
+    let binary =
+      '';
+
+
+    const chunk =
+      0x8000;
+
+
+    for (
+      let i = 0;
+      i < bytes.length;
+      i += chunk
+    ) {
+
+      binary +=
+        String.fromCharCode.apply(
+          null,
+          bytes.subarray(
+            i,
+            i + chunk
+          )
+        );
+    }
+
+
+    return btoa(binary);
+  }
+
+
+  function decode64(value) {
+
+    const binary =
+      atob(
+        String(value || '')
+          .replace(
+            /\s/g,
+            ''
+          )
+      );
+
+
+    const bytes =
+      new Uint8Array(
+        binary.length
+      );
+
+
+    for (
+      let i = 0;
+      i < binary.length;
+      i++
+    ) {
+
+      bytes[i] =
+        binary.charCodeAt(i);
+    }
+
+
+    return new TextDecoder(
+      'utf-8'
+    ).decode(bytes);
+  }
+
+
+  // =========================================================
+  // GITHUB READ
+  // =========================================================
+
+  function githubUrl(
+    s,
+    path
+  ) {
+
+    return (
+      'https://api.github.com/repos/' +
+      encodeURIComponent(
+        s.owner
+      ) +
+      '/' +
+      encodeURIComponent(
+        s.repo
+      ) +
+      '/contents/' +
+      path
+        .split('/')
+        .map(
+          encodeURIComponent
+        )
+        .join('/')
+    );
+  }
+
+
+  function githubHeaders(token) {
+
+    return {
+
+      Accept:
+        'application/vnd.github+json',
+
+      Authorization:
+        'Bearer ' + token,
+
+      'X-GitHub-Api-Version':
+        '2022-11-28'
+    };
+  }
+
+
+  async function readGithubFile(
+    s,
+    path
+  ) {
+
+    const response =
+      await fetch(
+        githubUrl(
+          s,
+          path
+        ) +
+        '?ref=' +
+        encodeURIComponent(
+          s.branch
+        ) +
+        '&_=' +
+        Date.now(),
+        {
+          cache:
+            'no-store',
+
+          headers:
+            githubHeaders(
+              s.token
+            )
+        }
+      );
+
+
+    if (
+      response.status ===
+      404
+    ) {
+
+      return null;
+    }
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        'GitHub 조회 실패: ' +
+        response.status
+      );
+    }
+
+
+    return await response.json();
+  }
+
+
+  // =========================================================
+  // ANALYSIS POWERSHELL GENERATOR
+  // =========================================================
+
+  function makeAnalysisScript(
+    projectPath,
+    includePattern,
+    useCompress
+  ) {
+
+    const project64 =
+      encode64(
+        projectPath
+      );
+
+
+    const include64 =
+      encode64(
+        includePattern || ''
+      );
+
+
+    const compressText =
+      useCompress
+        ? '$true'
+        : '$false';
+
+
+    const lines = [
+
+      '$ErrorActionPreference = "Stop"',
+
+      '',
+
+      '$Root = "C:\\dev\\gpt-to-pc-auto-runner"',
+
+      '$ConfigPath = Join-Path $Root "config.json"',
+
+      '$TokenPath = Join-Path $Root "token.txt"',
+
+      '$AnalysisRoot = Join-Path $Root "Analysis"',
+
+      '',
+
+      'New-Item -ItemType Directory -Path $AnalysisRoot -Force | Out-Null',
+
+      '',
+
+      '$ProjectPath = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String("' +
+        project64 +
+        '"))',
+
+      '',
+
+      '$IncludePattern = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String("' +
+        include64 +
+        '"))',
+
+      '',
+
+      '$UseCompress = ' +
+        compressText,
+
+      '',
+
+      'if (-not (Test-Path -LiteralPath $ProjectPath -PathType Container)) {',
+      '    throw ("프로젝트 폴더가 없습니다: " + $ProjectPath)',
+      '}',
+
+      '',
+
+      '$Config = Get-Content -LiteralPath $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json',
+
+      '',
+
+      '$Encrypted = Get-Content -LiteralPath $TokenPath -Raw',
+
+      '$Secure = $Encrypted | ConvertTo-SecureString',
+
+      '$Pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($Secure)',
+
+      '',
+
+      'try {',
+      '    $GitHubToken = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($Pointer)',
+      '}',
+      'finally {',
+      '    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($Pointer)',
+      '}',
+
+      '',
+
+      'function Get-Headers {',
+
+      '    return @{',
+      '        Accept = "application/vnd.github+json"',
+      '        Authorization = "Bearer " + $GitHubToken',
+      '        "X-GitHub-Api-Version" = "2022-11-28"',
+      '    }',
+
+      '}',
+
+      '',
+
+      'function Get-ApiUrl {',
+
+      '    param([string]$Path)',
+
+      '    $EncodedParts = @()',
+
+      '    foreach ($Part in ($Path -split "/")) {',
+      '        $EncodedParts += [Uri]::EscapeDataString([string]$Part)',
+      '    }',
+
+      '    return (',
+      '        "https://api.github.com/repos/" +',
+      '        $Config.Owner + "/" +',
+      '        $Config.Repo +',
+      '        "/contents/" +',
+      '        ($EncodedParts -join "/")',
+      '    )',
+
+      '}',
+
+      '',
+
+      'function Get-RemoteFile {',
+
+      '    param([string]$Path)',
+
+      '    $Url = Get-ApiUrl -Path $Path',
+
+      '    $Branch = [Uri]::EscapeDataString([string]$Config.Branch)',
+
+      '    return (',
+      '        Invoke-RestMethod `',
+      '            -Uri ($Url + "?ref=" + $Branch) `',
+      '            -Headers (Get-Headers) `',
+      '            -Method Get `',
+      '            -TimeoutSec 30',
+      '    )',
+
+      '}',
+
+      '',
+
+      'function Put-RemoteText {',
+
+      '    param(',
+      '        [string]$Path,',
+      '        [string]$Text,',
+      '        [string]$Message',
+      '    )',
+
+      '    for ($Attempt = 1; $Attempt -le 5; $Attempt++) {',
+
+      '        try {',
+
+      '            $Sha = $null',
+
+      '            try {',
+      '                $Existing = Get-RemoteFile -Path $Path',
+      '                $Sha = [string]$Existing.sha',
+      '            }',
+      '            catch {',
+
+      '                $StatusCode = 0',
+
+      '                try {',
+      '                    $StatusCode = [int]<!doctype html>
+<html lang="ko">
+
+<head>
+
+<meta charset="utf-8">
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, viewport-fit=cover"
+>
+
+<meta name="theme-color" content="#111827">
+
+<link
+  rel="manifest"
+  href="./manifest.webmanifest"
+>
+
+<title>GPT → PC</title>
+
+<style>
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 14px;
+  background: #111827;
+  color: #f9fafb;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+}
+
+.wrap {
+  width: 100%;
+  max-width: 1100px;
+  margin: auto;
+}
+
+h1 {
+  margin: 3px 0;
+  font-size: 27px;
+}
+
+.sub {
+  margin: 0 0 16px;
+  color: #9ca3af;
+}
+
+.modebar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.card {
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px solid #374151;
+  border-radius: 14px;
+  background: #1f2937;
+}
+
+label {
+  display: block;
+  margin: 10px 0 5px;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+input,
+textarea,
+button {
+  width: 100%;
+  border-radius: 9px;
+  font-size: 16px;
+}
+
+input,
+textarea {
+  padding: 11px;
+  border: 1px solid #4b5563;
+  background: #111827;
+  color: white;
+}
+
+textarea {
+  min-height: 260px;
+  resize: vertical;
+  font-family:
+    "Cascadia Code",
+    Consolas,
+    monospace;
+  line-height: 1.45;
+}
+
+#receiverText {
+  min-height: 500px;
+}
+
+button {
+  margin-top: 8px;
+  padding: 13px;
+  border: 0;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.green {
+  background: #059669;
+}
+
+.blue {
+  background: #2563eb;
+}
+
+.gray {
+  background: #374151;
+}
+
+.red {
+  background: #7f1d1d;
+}
+
+.active {
+  background: #2563eb;
+}
+
+.inactive {
+  background: #374151;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.grid3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.status {
+  padding: 12px;
+  border-radius: 9px;
+  background: #111827;
+  color: #d1d5db;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.connected {
+  color: #86efac;
+}
+
+.disconnected {
+  color: #fca5a5;
+}
+
+.meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.metaBox {
+  padding: 10px;
+  border-radius: 9px;
+  background: #111827;
+}
+
+.metaLabel {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.metaValue {
+  margin-top: 4px;
+  word-break: break-all;
+}
+
+.hidden {
+  display: none;
+}
+
+details summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.count {
+  margin-top: 5px;
+  text-align: right;
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.newFlash {
+  animation: flash 1.4s ease;
+}
+
+@keyframes flash {
+
+  0% {
+    border-color: #10b981;
+  }
+
+  100% {
+    border-color: #374151;
+  }
+}
+
+@media (max-width: 700px) {
+
+  .grid2,
+  .grid3,
+  .meta {
+    grid-template-columns: 1fr;
+  }
+
+  #receiverText {
+    min-height: 340px;
+  }
+}
+
+</style>
+
+<!-- GPT_COMPACT_UI_START -->
+
+<style>
+
+/* ==========================================================
+   GPT -> PC COMPACT UI 2026
+========================================================== */
+
+:root {
+  --ui-bg: #0b0d12;
+  --ui-surface: rgba(24, 27, 35, 0.82);
+  --ui-surface-strong: #181b23;
+  --ui-surface-soft: #11141b;
+
+  --ui-border: rgba(255,255,255,0.08);
+  --ui-border-strong: rgba(255,255,255,0.13);
+
+  --ui-text: #f4f5f7;
+  --ui-muted: #8e95a3;
+
+  --ui-blue: #4f7cff;
+  --ui-green: #18a66a;
+  --ui-red: #d84f58;
+  --ui-purple: #8066e8;
+
+  --ui-radius: 13px;
+  --ui-radius-small: 9px;
+
+  --ui-shadow:
+    0 8px 30px rgba(0,0,0,0.22);
+}
+
+
+/* ==========================================================
+   BASE
+========================================================== */
+
+html {
+  background: var(--ui-bg);
+}
+
+body {
+  background:
+    radial-gradient(
+      circle at 15% 0%,
+      rgba(79,124,255,0.10),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 100% 10%,
+      rgba(128,102,232,0.08),
+      transparent 22%
+    ),
+    var(--ui-bg);
+
+  color: var(--ui-text);
+
+  font-family:
+    Inter,
+    Pretendard,
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    sans-serif;
+
+  padding:
+    12px 12px 32px;
+
+  font-size: 14px;
+}
+
+
+/* ==========================================================
+   MAIN WIDTH
+========================================================== */
+
+.wrap,
+.container {
+  width: min(720px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+
+/* ==========================================================
+   HEADER
+========================================================== */
+
+h1 {
+  margin: 3px 0 2px !important;
+
+  font-size:
+    clamp(22px, 5vw, 29px) !important;
+
+  line-height: 1.15;
+
+  letter-spacing: -0.035em;
+}
+
+h2 {
+  margin: 5px 0 !important;
+
+  font-size: 16px !important;
+
+  letter-spacing: -0.02em;
+}
+
+.sub,
+#subtitle {
+  margin:
+    5px 0 12px !important;
+
+  color:
+    var(--ui-muted) !important;
+
+  font-size: 12px !important;
+
+  line-height: 1.45;
+}
+
+
+/* ==========================================================
+   MODE TABS
+========================================================== */
+
+.modebar {
+  position: sticky;
+
+  top: 8px;
+
+  z-index: 50;
+
+  display: grid !important;
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+
+  gap: 3px !important;
+
+  margin:
+    8px 0 12px !important;
+
+  padding: 4px !important;
+
+  border:
+    1px solid
+    var(--ui-border);
+
+  border-radius: 14px;
+
+  background:
+    rgba(17,20,27,0.78);
+
+  box-shadow:
+    0 8px 28px
+    rgba(0,0,0,0.18);
+
+  backdrop-filter:
+    blur(18px);
+
+  -webkit-backdrop-filter:
+    blur(18px);
+}
+
+
+.modebar button {
+  width: 100% !important;
+
+  min-height: 34px !important;
+
+  margin: 0 !important;
+
+  padding:
+    6px 7px !important;
+
+  border:
+    1px solid
+    transparent !important;
+
+  border-radius:
+    10px !important;
+
+  background:
+    transparent !important;
+
+  color:
+    #818896 !important;
+
+  font-size:
+    11px !important;
+
+  font-weight:
+    650 !important;
+
+  letter-spacing:
+    -0.02em;
+
+  box-shadow:
+    none !important;
+
+  transition:
+    background .16s ease,
+    color .16s ease,
+    transform .12s ease;
+}
+
+
+.modebar button.active {
+  background:
+    rgba(255,255,255,0.095) !important;
+
+  color:
+    #ffffff !important;
+
+  border-color:
+    rgba(255,255,255,0.08) !important;
+
+  box-shadow:
+    0 2px 8px
+    rgba(0,0,0,0.18) !important;
+}
+
+
+.modebar button:active {
+  transform:
+    scale(.97);
+}
+
+
+/* ==========================================================
+   CARDS
+========================================================== */
+
+.card {
+  margin-bottom:
+    9px !important;
+
+  padding:
+    12px !important;
+
+  border:
+    1px solid
+    var(--ui-border) !important;
+
+  border-radius:
+    var(--ui-radius) !important;
+
+  background:
+    var(--ui-surface) !important;
+
+  box-shadow:
+    0 4px 20px
+    rgba(0,0,0,0.12) !important;
+
+  backdrop-filter:
+    blur(10px);
+
+  -webkit-backdrop-filter:
+    blur(10px);
+}
+
+
+/* ==========================================================
+   LABELS
+========================================================== */
+
+label {
+  margin:
+    7px 0 5px !important;
+
+  color:
+    var(--ui-muted) !important;
+
+  font-size:
+    11px !important;
+
+  font-weight:
+    650;
+
+  letter-spacing:
+    .015em;
+}
+
+
+/* ==========================================================
+   BUTTONS
+========================================================== */
+
+button {
+  width: auto !important;
+
+  min-height:
+    35px !important;
+
+  margin-top:
+    6px !important;
+
+  padding:
+    7px 11px !important;
+
+  border:
+    1px solid
+    var(--ui-border) !important;
+
+  border-radius:
+    var(--ui-radius-small) !important;
+
+  font-size:
+    12px !important;
+
+  font-weight:
+    680 !important;
+
+  letter-spacing:
+    -0.015em;
+
+  line-height:
+    1.15;
+
+  box-shadow:
+    none !important;
+
+  cursor:
+    pointer;
+
+  transition:
+    opacity .15s ease,
+    transform .12s ease,
+    background .15s ease;
+}
+
+
+button:hover {
+  opacity:
+    .93;
+}
+
+
+button:active {
+  transform:
+    scale(.975);
+}
+
+
+/* main standalone actions */
+
+.card > button {
+  width:
+    100% !important;
+}
+
+
+/* compact two-button rows */
+
+.grid2,
+.grid {
+  gap:
+    6px !important;
+}
+
+
+.grid2 button,
+.grid button {
+  width:
+    100% !important;
+
+  min-height:
+    34px !important;
+
+  margin-top:
+    5px !important;
+}
+
+
+/* ==========================================================
+   BUTTON COLORS
+========================================================== */
+
+button.blue,
+.blue {
+  background:
+    rgba(79,124,255,.88) !important;
+
+  color:
+    #fff !important;
+}
+
+
+button.green,
+.green {
+  background:
+    rgba(24,166,106,.88) !important;
+
+  color:
+    #fff !important;
+}
+
+
+button.red,
+.red {
+  background:
+    rgba(216,79,88,.82) !important;
+
+  color:
+    #fff !important;
+}
+
+
+button.gray,
+.gray {
+  background:
+    rgba(255,255,255,.065) !important;
+
+  color:
+    #d7dae0 !important;
+}
+
+
+/* ==========================================================
+   FORM
+========================================================== */
+
+input,
+textarea {
+  border:
+    1px solid
+    var(--ui-border) !important;
+
+  border-radius:
+    10px !important;
+
+  background:
+    rgba(9,11,16,.72) !important;
+
+  color:
+    var(--ui-text) !important;
+
+  outline:
+    none;
+
+  transition:
+    border-color .15s ease,
+    box-shadow .15s ease;
+}
+
+
+input {
+  min-height:
+    35px !important;
+
+  padding:
+    7px 9px !important;
+
+  font-size:
+    12px !important;
+}
+
+
+textarea {
+  padding:
+    10px !important;
+
+  font-size:
+    12px !important;
+
+  line-height:
+    1.45 !important;
+
+  min-height:
+    150px !important;
+
+  max-height:
+    46vh;
+
+  border-radius:
+    11px !important;
+}
+
+
+input:focus,
+textarea:focus {
+  border-color:
+    rgba(79,124,255,.60) !important;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(79,124,255,.10);
+}
+
+
+/* Main PowerShell receiver */
+
+#receiverText {
+  min-height:
+    230px !important;
+
+  max-height:
+    50vh !important;
+}
+
+
+/* ==========================================================
+   TEXT BRIDGE
+========================================================== */
+
+#gptTextMode .card {
+  padding:
+    11px !important;
+}
+
+
+.gpt-text-role {
+  display:
+    flex !important;
+
+  gap:
+    5px !important;
+
+  margin-bottom:
+    8px !important;
+}
+
+
+.gpt-text-role button {
+  flex:
+    1;
+
+  min-height:
+    33px !important;
+
+  margin:
+    0 !important;
+
+  padding:
+    6px 9px !important;
+
+  font-size:
+    11px !important;
+}
+
+
+.gpt-text-role .selected {
+  background:
+    rgba(128,102,232,.88) !important;
+
+  color:
+    white !important;
+
+  border-color:
+    rgba(167,145,255,.5) !important;
+}
+
+
+.gpt-text-role .unselected {
+  background:
+    rgba(255,255,255,.045) !important;
+
+  color:
+    var(--ui-muted) !important;
+}
+
+
+.gpt-text-box {
+  min-height:
+    130px !important;
+}
+
+
+.gpt-text-receive-box {
+  min-height:
+    150px !important;
+}
+
+
+.gpt-text-info {
+  margin-top:
+    7px !important;
+
+  padding:
+    8px 9px !important;
+
+  border:
+    1px solid
+    var(--ui-border);
+
+  border-radius:
+    9px !important;
+
+  background:
+    rgba(5,7,11,.45) !important;
+
+  color:
+    #747b88 !important;
+
+  font-size:
+    10px !important;
+
+  line-height:
+    1.45 !important;
+}
+
+
+.gpt-text-status,
+.status {
+  margin-top:
+    7px !important;
+
+  padding:
+    9px 10px !important;
+
+  border:
+    1px solid
+    var(--ui-border);
+
+  border-radius:
+    9px !important;
+
+  background:
+    rgba(6,8,12,.62) !important;
+
+  font-size:
+    11px !important;
+
+  line-height:
+    1.45 !important;
+}
+
+
+/* ==========================================================
+   DETAILS / SETTINGS
+========================================================== */
+
+details {
+  overflow:
+    hidden;
+
+  border:
+    1px solid
+    var(--ui-border);
+
+  border-radius:
+    11px;
+
+  background:
+    rgba(12,14,20,.42);
+}
+
+
+details summary {
+  padding:
+    9px 10px;
+
+  color:
+    #b8bdc7;
+
+  font-size:
+    11px;
+
+  font-weight:
+    650;
+
+  cursor:
+    pointer;
+}
+
+
+details[open] summary {
+  border-bottom:
+    1px solid
+    var(--ui-border);
+}
+
+
+details > *:not(summary) {
+  margin-left:
+    9px;
+
+  margin-right:
+    9px;
+}
+
+
+details > *:last-child {
+  margin-bottom:
+    9px;
+}
+
+
+/* ==========================================================
+   COUNTER / META
+========================================================== */
+
+.count,
+#sendCount {
+  margin-top:
+    4px !important;
+
+  color:
+    #697180 !important;
+
+  font-size:
+    10px !important;
+}
+
+
+/* ==========================================================
+   SCROLLBAR
+========================================================== */
+
+textarea::-webkit-scrollbar {
+  width:
+    5px;
+}
+
+
+textarea::-webkit-scrollbar-thumb {
+  background:
+    rgba(255,255,255,.14);
+
+  border-radius:
+    20px;
+}
+
+
+/* ==========================================================
+   MOBILE
+========================================================== */
+
+@media(max-width:600px) {
+
+  body {
+    padding:
+      8px 9px 24px !important;
+  }
+
+
+  .card {
+    padding:
+      10px !important;
+
+    margin-bottom:
+      7px !important;
+
+    border-radius:
+      12px !important;
+  }
+
+
+  .modebar {
+    top:
+      5px;
+
+    margin:
+      6px 0 9px !important;
+  }
+
+
+  .modebar button {
+    min-height:
+      32px !important;
+
+    padding:
+      5px 4px !important;
+
+    font-size:
+      10px !important;
+  }
+
+
+  button {
+    min-height:
+      34px !important;
+
+    padding:
+      7px 9px !important;
+
+    font-size:
+      11px !important;
+  }
+
+
+  textarea {
+    min-height:
+      125px !important;
+  }
+
+
+  #receiverText {
+    min-height:
+      190px !important;
+  }
+
+
+  .gpt-text-box {
+    min-height:
+      115px !important;
+  }
+
+
+  .gpt-text-receive-box {
+    min-height:
+      130px !important;
+  }
+
+
+  h1 {
+    font-size:
+      22px !important;
+  }
+
+}
+
+
+/* ==========================================================
+   PC / DESKTOP
+========================================================== */
+
+@media(min-width:800px) {
+
+  body {
+    padding-top:
+      20px !important;
+  }
+
+
+  .card {
+    padding:
+      13px 14px !important;
+  }
+
+
+  textarea {
+    min-height:
+      145px !important;
+  }
+
+
+  #receiverText {
+    min-height:
+      260px !important;
+  }
+
+}
+
+</style>
+
+<!-- GPT_COMPACT_UI_END -->
+</head>
+
+
+<body>
+
+<div class="wrap">
+
+<h1>GPT → PC</h1>
+
+<p
+  id="subtitle"
+  class="sub"
+>
+ChatGPT 코드를 휴대폰에서 PC로 전달합니다.
+</p>
+
+
+<div class="modebar">
+
+<button
+  id="sendModeButton"
+  class="active"
+  onclick="setMode('send')"
+>
+휴대폰 전송
+</button>
+
+<button
+  id="receiveModeButton"
+  class="inactive"
+  onclick="setMode('receive')"
+>
+PC 실시간 수신
+</button>
+
+</div>
+
+
+<!-- ========================================================
+     SEND MODE
+========================================================= -->
+
+<div id="sendMode">
+
+<div class="card">
+
+<button
+  class="green"
+  onclick="clipboardAndSend()"
+>
+클립보드 읽고 PC로 전송
+</button>
+
+<button
+  class="blue"
+  onclick="readClipboard()"
+>
+클립보드만 가져오기
+</button>
+
+<div
+  id="sendStatus"
+  class="status"
+  style="margin-top:10px"
+>
+준비됨
+</div>
+
+</div>
+
+
+<div class="card">
+
+<label>
+전송할 코드
+</label>
+
+<textarea
+  id="sendText"
+  placeholder="ChatGPT 코드 블록에서 복사 버튼을 누른 다음 위의 전송 버튼을 누르세요."
+></textarea>
+
+<div
+  id="sendCount"
+  class="count"
+>
+0자
+</div>
+
+
+<label>
+GitHub 저장 파일
+</label>
+
+<input
+  id="sendPath"
+  value="inbox/latest.ps1"
+>
+
+
+<div class="grid2">
+
+<button
+  class="gray"
+  onclick="sendCurrentText()"
+>
+현재 내용 전송
+</button>
+
+<button
+  class="red"
+  onclick="clearSendText()"
+>
+내용 지우기
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ========================================================
+     RECEIVE MODE
+========================================================= -->
+
+<div
+  id="receiveMode"
+  class="hidden"
+>
+
+<div
+  id="receiverCard"
+  class="card"
+>
+
+<div
+  id="receiveStatus"
+  class="status"
+>
+수신 대기 중...
+</div>
+
+
+<div
+  class="meta"
+  style="margin-top:10px"
+>
+
+<div class="metaBox">
+
+<div class="metaLabel">
+파일
+</div>
+
+<div
+  id="receiveFile"
+  class="metaValue"
+>
+-
+</div>
+
+</div>
+
+
+<div class="metaBox">
+
+<div class="metaLabel">
+길이
+</div>
+
+<div
+  id="receiveLength"
+  class="metaValue"
+>
+-
+</div>
+
+</div>
+
+
+<div class="metaBox">
+
+<div class="metaLabel">
+마지막 수신
+</div>
+
+<div
+  id="receiveTime"
+  class="metaValue"
+>
+-
+</div>
+
+</div>
+
+</div>
+
+
+<label>
+PC에 도착한 최신 코드
+</label>
+
+<textarea
+  id="receiverText"
+  spellcheck="false"
+></textarea>
+
+
+<div class="grid3">
+
+<button
+  class="green"
+  onclick="copyReceiverText()"
+>
+클립보드 복사
+</button>
+
+<button
+  class="blue"
+  onclick="checkNow()"
+>
+지금 확인
+</button>
+
+<button
+  id="monitorButton"
+  class="red"
+  onclick="toggleMonitoring()"
+>
+자동 확인 중지
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ========================================================
+     SETTINGS
+========================================================= -->
+
+<div class="card">
+
+<details id="settingsDetails">
+
+<summary>
+GitHub 연결 설정
+</summary>
+
+
+<label>
+GitHub 사용자명
+</label>
+
+<input
+  id="owner"
+  value="joo-ec"
+>
+
+
+<label>
+Private Repository
+</label>
+
+<input
+  id="repo"
+  value="gpt-to-pc-data"
+>
+
+
+<label>
+Branch
+</label>
+
+<input
+  id="branch"
+  value="main"
+>
+
+
+<label>
+Fine-grained PAT
+</label>
+
+<input
+  id="token"
+  type="password"
+  placeholder="github_pat_..."
+>
+
+
+<div class="grid2">
+
+<button
+  class="blue"
+  onclick="saveSettings()"
+>
+설정 저장
+</button>
+
+<button
+  class="gray"
+  onclick="testConnection()"
+>
+연결 테스트
+</button>
+
+</div>
+
+<button
+  class="red"
+  onclick="clearToken()"
+>
+이 기기에 저장된 토큰 삭제
+</button>
+
+</details>
+
+</div>
+
+</div>
+
+
+<script>
+
+const API_VERSION =
+  '2026-03-10';
+
+const POLL_INTERVAL =
+  5000;
+
+
+let currentMode =
+  'send';
+
+let monitoring =
+  true;
+
+let monitorTimer =
+  null;
+
+let lastSha =
+  '';
+
+let firstReceiverLoad =
+  true;
+
+
+const sendText =
+  document.getElementById(
+    'sendText'
+  );
+
+const sendStatus =
+  document.getElementById(
+    'sendStatus'
+  );
+
+const sendCount =
+  document.getElementById(
+    'sendCount'
+  );
+
+const receiverText =
+  document.getElementById(
+    'receiverText'
+  );
+
+const receiveStatus =
+  document.getElementById(
+    'receiveStatus'
+  );
+
+
+function setSendStatus(text) {
+
+  sendStatus.textContent =
+    text;
+}
+
+
+function setReceiveStatus(text) {
+
+  receiveStatus.textContent =
+    text;
+}
+
+
+function updateSendCount() {
+
+  sendCount.textContent =
+    sendText.value.length
+      .toLocaleString()
+    +
+    '자';
+}
+
+
+sendText.addEventListener(
+  'input',
+  updateSendCount
+);
+
+
+function loadSettings() {
+
+  document.getElementById(
+    'owner'
+  ).value =
+    localStorage.getItem(
+      'githubOwner'
+    ) || 'joo-ec';
+
+
+  document.getElementById(
+    'repo'
+  ).value =
+    localStorage.getItem(
+      'githubRepo'
+    ) || 'gpt-to-pc-data';
+
+
+  document.getElementById(
+    'branch'
+  ).value =
+    localStorage.getItem(
+      'githubBranch'
+    ) || 'main';
+
+
+  document.getElementById(
+    'sendPath'
+  ).value =
+    localStorage.getItem(
+      'githubPath'
+    ) || 'inbox/latest.ps1';
+
+
+  document.getElementById(
+    'token'
+  ).value =
+    localStorage.getItem(
+      'githubToken'
+    ) || '';
+}
+
+
+function saveSettings() {
+
+  const owner =
+    document
+      .getElementById('owner')
+      .value
+      .trim();
+
+  const repo =
+    document
+      .getElementById('repo')
+      .value
+      .trim();
+
+  const branch =
+    document
+      .getElementById('branch')
+      .value
+      .trim();
+
+  const path =
+    document
+      .getElementById('sendPath')
+      .value
+      .trim();
+
+  const token =
+    document
+      .getElementById('token')
+      .value
+      .trim();
+
+
+  localStorage.setItem(
+    'githubOwner',
+    owner
+  );
+
+  localStorage.setItem(
+    'githubRepo',
+    repo
+  );
+
+  localStorage.setItem(
+    'githubBranch',
+    branch
+  );
+
+  localStorage.setItem(
+    'githubPath',
+    path
+  );
+
+  localStorage.setItem(
+    'githubToken',
+    token
+  );
+
+
+  if (
+    currentMode === 'receive'
+  ) {
+
+    setReceiveStatus(
+      '설정을 저장했습니다.\n연결 확인 중...'
+    );
+
+    checkLatestFile(
+      true
+    );
+
+  } else {
+
+    setSendStatus(
+      'GitHub 설정을 저장했습니다.'
+    );
+  }
+}
+
+
+function getSettings() {
+
+  const settings = {
+
+    owner:
+      document
+        .getElementById('owner')
+        .value
+        .trim(),
+
+    repo:
+      document
+        .getElementById('repo')
+        .value
+        .trim(),
+
+    branch:
+      document
+        .getElementById('branch')
+        .value
+        .trim(),
+
+    path:
+      document
+        .getElementById('sendPath')
+        .value
+        .trim(),
+
+    token:
+      document
+        .getElementById('token')
+        .value
+        .trim()
+  };
+
+
+  if (!settings.owner) {
+    throw new Error(
+      'GitHub 사용자명이 없습니다.'
+    );
+  }
+
+  if (!settings.repo) {
+    throw new Error(
+      'Repository가 없습니다.'
+    );
+  }
+
+  if (!settings.branch) {
+    throw new Error(
+      'Branch가 없습니다.'
+    );
+  }
+
+  if (!settings.path) {
+    throw new Error(
+      '파일 경로가 없습니다.'
+    );
+  }
+
+  if (!settings.token) {
+    throw new Error(
+      'GitHub PAT를 입력하세요.'
+    );
+  }
+
+
+  return settings;
+}
+
+
+function headers(token) {
+
+  return {
+
+    'Accept':
+      'application/vnd.github+json',
+
+    'Authorization':
+      'Bearer ' + token,
+
+    'X-GitHub-Api-Version':
+      API_VERSION
+  };
+}
+
+
+function apiUrl(
+  owner,
+  repo,
+  path
+) {
+
+  const encodedPath =
+    path
+      .split('/')
+      .map(
+        value =>
+          encodeURIComponent(
+            value
+          )
+      )
+      .join('/');
+
+
+  return (
+    'https://api.github.com/repos/' +
+    encodeURIComponent(owner) +
+    '/' +
+    encodeURIComponent(repo) +
+    '/contents/' +
+    encodedPath
+  );
+}
+
+
+function utf8ToBase64(text) {
+
+  const bytes =
+    new TextEncoder()
+      .encode(
+        text
+      );
+
+
+  let binary =
+    '';
+
+
+  const size =
+    0x8000;
+
+
+  for (
+    let i = 0;
+    i < bytes.length;
+    i += size
+  ) {
+
+    const chunk =
+      bytes.subarray(
+        i,
+        Math.min(
+          i + size,
+          bytes.length
+        )
+      );
+
+
+    binary +=
+      String.fromCharCode.apply(
+        null,
+        chunk
+      );
+  }
+
+
+  return btoa(
+    binary
+  );
+}
+
+
+function base64ToUtf8(value) {
+
+  const cleaned =
+    String(value || '')
+      .replace(
+        /\s/g,
+        ''
+      );
+
+
+  const binary =
+    atob(
+      cleaned
+    );
+
+
+  const bytes =
+    new Uint8Array(
+      binary.length
+    );
+
+
+  for (
+    let i = 0;
+    i < binary.length;
+    i++
+  ) {
+
+    bytes[i] =
+      binary.charCodeAt(
+        i
+      );
+  }
+
+
+  return new TextDecoder(
+    'utf-8'
+  ).decode(
+    bytes
+  );
+}
+
+
+/* ==========================================================
+   MODE
+========================================================== */
+
+function setMode(mode) {
+
+  currentMode =
+    mode;
+
+
+  const sendMode =
+    document.getElementById(
+      'sendMode'
+    );
+
+  const receiveMode =
+    document.getElementById(
+      'receiveMode'
+    );
+
+  const sendButton =
+    document.getElementById(
+      'sendModeButton'
+    );
+
+  const receiveButton =
+    document.getElementById(
+      'receiveModeButton'
+    );
+
+
+  if (
+    mode === 'receive'
+  ) {
+
+    sendMode.classList.add(
+      'hidden'
+    );
+
+    receiveMode.classList.remove(
+      'hidden'
+    );
+
+    sendButton.className =
+      'inactive';
+
+    receiveButton.className =
+      'active';
+
+    document.getElementById(
+      'subtitle'
+    ).textContent =
+      '휴대폰에서 전송된 코드를 PC에서 자동으로 보여줍니다.';
+
+
+    startMonitoring();
+
+
+  } else {
+
+    receiveMode.classList.add(
+      'hidden'
+    );
+
+    sendMode.classList.remove(
+      'hidden'
+    );
+
+    receiveButton.className =
+      'inactive';
+
+    sendButton.className =
+      'active';
+
+    document.getElementById(
+      'subtitle'
+    ).textContent =
+      'ChatGPT 코드를 휴대폰에서 PC로 전달합니다.';
+  }
+
+
+  const url =
+    new URL(
+      location.href
+    );
+
+
+  url.searchParams.set(
+    'mode',
+    mode
+  );
+
+
+  history.replaceState(
+    {},
+    '',
+    url
+  );
+}
+
+
+/* ==========================================================
+   SEND
+========================================================== */
+
+async function readClipboard() {
+
+  try {
+
+    if (
+      !navigator.clipboard ||
+      !navigator.clipboard.readText
+    ) {
+
+      throw new Error(
+        '클립보드 읽기를 지원하지 않습니다.'
+      );
+    }
+
+
+    const text =
+      await navigator
+        .clipboard
+        .readText();
+
+
+    if (!text) {
+
+      throw new Error(
+        '클립보드가 비어 있습니다.'
+      );
+    }
+
+
+    sendText.value =
+      text;
+
+
+    updateSendCount();
+
+
+    setSendStatus(
+      '클립보드 읽기 완료\n' +
+      text.length.toLocaleString() +
+      '자'
+    );
+
+
+    return text;
+
+  } catch (error) {
+
+    setSendStatus(
+      '클립보드 읽기 실패\n\n' +
+      error.message
+    );
+
+    throw error;
+  }
+}
+
+
+async function clipboardAndSend() {
+
+  try {
+
+    const text =
+      await readClipboard();
+
+
+    await sendToGitHub(
+      text
+    );
+
+  } catch (error) {
+
+    if (
+      !String(
+        error.message
+      ).includes(
+        '클립보드'
+      )
+    ) {
+
+      setSendStatus(
+        '전송 실패\n\n' +
+        error.message
+      );
+    }
+  }
+}
+
+
+async function sendCurrentText() {
+
+  try {
+
+    const text =
+      sendText.value;
+
+
+    if (!text.trim()) {
+
+      throw new Error(
+        '전송할 내용이 없습니다.'
+      );
+    }
+
+
+    await sendToGitHub(
+      text
+    );
+
+  } catch (error) {
+
+    setSendStatus(
+      '전송 실패\n\n' +
+      error.message
+    );
+  }
+}
+
+
+function waitMs(ms) {
+
+  return new Promise(
+    resolve => {
+      setTimeout(
+        resolve,
+        ms
+      );
+    }
+  );
+}
+
+
+async function readGitHubResponseError(
+  response
+) {
+
+  let message =
+    response.status +
+    ' ' +
+    response.statusText;
+
+
+  try {
+
+    const body =
+      await response.json();
+
+
+    if (
+      body &&
+      body.message
+    ) {
+
+      message =
+        body.message;
+    }
+
+  } catch {
+  }
+
+
+  return message;
+}
+
+
+async function getLatestGitHubFileSha(
+  s,
+  url
+) {
+
+  const response =
+    await fetch(
+      url +
+      '?ref=' +
+      encodeURIComponent(
+        s.branch
+      ) +
+      '&_=' +
+      Date.now(),
+      {
+        method:
+          'GET',
+
+        cache:
+          'no-store',
+
+        headers:
+          headers(
+            s.token
+          )
+      }
+    );
+
+
+  if (
+    response.status === 404
+  ) {
+
+    return null;
+  }
+
+
+  if (!response.ok) {
+
+    const detail =
+      await readGitHubResponseError(
+        response
+      );
+
+
+    throw new Error(
+      'GitHub 파일 확인 실패: ' +
+      detail
+    );
+  }
+
+
+  const data =
+    await response.json();
+
+
+  return (
+    data.sha ||
+    null
+  );
+}
+
+
+function isGitHubShaConflict(
+  statusCode,
+  message
+) {
+
+  const text =
+    String(
+      message || ''
+    ).toLowerCase();
+
+
+  return (
+    statusCode === 409 ||
+    statusCode === 422 ||
+    text.includes(
+      'does not match'
+    ) ||
+    (
+      text.includes(
+        'sha'
+      ) &&
+      text.includes(
+        'match'
+      )
+    )
+  );
+}
+
+
+async function sendToGitHub(text) {
+
+  const s =
+    getSettings();
+
+
+  localStorage.setItem(
+    'githubPath',
+    s.path
+  );
+
+
+  const url =
+    apiUrl(
+      s.owner,
+      s.repo,
+      s.path
+    );
+
+
+  const maxAttempts =
+    5;
+
+
+  let lastError =
+    null;
+
+
+  for (
+    let attempt = 1;
+    attempt <= maxAttempts;
+    attempt++
+  ) {
+
+    try {
+
+      setSendStatus(
+        'GitHub 최신 상태 확인 중...\n\n' +
+        '전송 시도 ' +
+        attempt +
+        '/' +
+        maxAttempts
+      );
+
+
+      // ------------------------------------------------------
+      // 핵심:
+      // 매 PUT 직전에 항상 최신 SHA를 다시 읽는다.
+      // ------------------------------------------------------
+
+      const currentSha =
+        await getLatestGitHubFileSha(
+          s,
+          url
+        );
+
+
+      const body = {
+
+        message:
+          'GPT to PC ' +
+          new Date()
+            .toISOString(),
+
+        content:
+          utf8ToBase64(
+            text
+          ),
+
+        branch:
+          s.branch
+      };
+
+
+      if (currentSha) {
+
+        body.sha =
+          currentSha;
+      }
+
+
+      setSendStatus(
+        'PC로 전송 중...\n\n' +
+        text.length.toLocaleString() +
+        '자\n\n' +
+        '시도 ' +
+        attempt +
+        '/' +
+        maxAttempts
+      );
+
+
+      const response =
+        await fetch(
+          url,
+          {
+            method:
+              'PUT',
+
+            cache:
+              'no-store',
+
+            headers: {
+
+              ...headers(
+                s.token
+              ),
+
+              'Content-Type':
+                'application/json'
+            },
+
+            body:
+              JSON.stringify(
+                body
+              )
+          }
+        );
+
+
+      // ------------------------------------------------------
+      // 성공
+      // ------------------------------------------------------
+
+      if (response.ok) {
+
+        const result =
+          await response.json();
+
+
+        let message =
+          'PC 전송 완료!\n\n' +
+          s.path +
+          '\n' +
+          text.length.toLocaleString() +
+          '자\n\n' +
+          'Commit: ' +
+          result.commit.sha.substring(
+            0,
+            7
+          );
+
+
+        if (attempt > 1) {
+
+          message +=
+            '\n\nGitHub 충돌 자동 복구 완료' +
+            '\n' +
+            attempt +
+            '회차에 성공';
+        }
+
+
+        setSendStatus(
+          message
+        );
+
+
+        return result;
+      }
+
+
+      // ------------------------------------------------------
+      // 실패 내용 읽기
+      // ------------------------------------------------------
+
+      const detail =
+        await readGitHubResponseError(
+          response
+        );
+
+
+      const conflict =
+        isGitHubShaConflict(
+          response.status,
+          detail
+        );
+
+
+      // ------------------------------------------------------
+      // SHA 충돌이면 최신 SHA를 다시 읽고 재시도
+      // ------------------------------------------------------
+
+      if (
+        conflict &&
+        attempt < maxAttempts
+      ) {
+
+        lastError =
+          new Error(
+            detail
+          );
+
+
+        setSendStatus(
+          'GitHub 동시 수정 충돌 감지\n\n' +
+          detail +
+          '\n\n' +
+          '최신 SHA를 다시 읽은 뒤 자동 재시도합니다.\n' +
+          '시도 ' +
+          attempt +
+          '/' +
+          maxAttempts
+        );
+
+
+        // PC Runner가 result/*를 쓰는 순간과 겹칠 수 있으므로
+        // 재시도할수록 조금 더 기다린다.
+        await waitMs(
+          400 * attempt
+        );
+
+
+        continue;
+      }
+
+
+      // SHA 충돌이 아닌 실제 오류
+      throw new Error(
+        detail
+      );
+
+
+    } catch (error) {
+
+      lastError =
+        error;
+
+
+      const message =
+        String(
+          error &&
+          error.message
+            ? error.message
+            : error
+        );
+
+
+      const retryable =
+        isGitHubShaConflict(
+          0,
+          message
+        ) ||
+        message
+          .toLowerCase()
+          .includes(
+            'failed to fetch'
+          );
+
+
+      if (
+        retryable &&
+        attempt < maxAttempts
+      ) {
+
+        setSendStatus(
+          '일시적인 GitHub 충돌/통신 오류\n\n' +
+          message +
+          '\n\n' +
+          '자동 재시도합니다.\n' +
+          '시도 ' +
+          attempt +
+          '/' +
+          maxAttempts
+        );
+
+
+        await waitMs(
+          500 * attempt
+        );
+
+
+        continue;
+      }
+
+
+      throw error;
+    }
+  }
+
+
+  throw (
+    lastError ||
+    new Error(
+      'GitHub 전송을 완료하지 못했습니다.'
+    )
+  );
+}
+
+function clearSendText() {
+
+  sendText.value =
+    '';
+
+  updateSendCount();
+
+  setSendStatus(
+    '내용을 지웠습니다.'
+  );
+}
+
+
+/* ==========================================================
+   PC RECEIVER
+========================================================== */
+
+function startMonitoring() {
+
+  monitoring =
+    true;
+
+
+  document.getElementById(
+    'monitorButton'
+  ).textContent =
+    '자동 확인 중지';
+
+
+  document.getElementById(
+    'monitorButton'
+  ).className =
+    'red';
+
+
+  if (monitorTimer) {
+
+    clearInterval(
+      monitorTimer
+    );
+  }
+
+
+  checkLatestFile(
+    true
+  );
+
+
+  monitorTimer =
+    setInterval(
+      () => {
+
+        if (
+          monitoring &&
+          currentMode === 'receive'
+        ) {
+
+          checkLatestFile(
+            false
+          );
+        }
+
+      },
+      POLL_INTERVAL
+    );
+}
+
+
+function stopMonitoring() {
+
+  monitoring =
+    false;
+
+
+  if (monitorTimer) {
+
+    clearInterval(
+      monitorTimer
+    );
+
+    monitorTimer =
+      null;
+  }
+
+
+  document.getElementById(
+    'monitorButton'
+  ).textContent =
+    '자동 확인 시작';
+
+
+  document.getElementById(
+    'monitorButton'
+  ).className =
+    'green';
+
+
+  setReceiveStatus(
+    '자동 확인이 중지되었습니다.'
+  );
+}
+
+
+function toggleMonitoring() {
+
+  if (monitoring) {
+
+    stopMonitoring();
+
+  } else {
+
+    startMonitoring();
+  }
+}
+
+
+function checkNow() {
+
+  checkLatestFile(
+    true
+  );
+}
+
+
+async function checkLatestFile(
+  manual
+) {
+
+  try {
+
+    const s =
+      getSettings();
+
+
+    const url =
+      apiUrl(
+        s.owner,
+        s.repo,
+        s.path
+      );
+
+
+    if (
+      manual ||
+      firstReceiverLoad
+    ) {
+
+      setReceiveStatus(
+        'GitHub 확인 중...'
+      );
+    }
+
+
+    const response =
+      await fetch(
+        url +
+        '?ref=' +
+        encodeURIComponent(
+          s.branch
+        ) +
+        '&_=' +
+        Date.now(),
+        {
+          cache:
+            'no-store',
+
+          headers:
+            headers(
+              s.token
+            )
+        }
+      );
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        'GitHub 응답 ' +
+        response.status
+      );
+    }
+
+
+    const data =
+      await response.json();
+
+
+    const changed =
+      data.sha !== lastSha;
+
+
+    if (
+      changed ||
+      firstReceiverLoad
+    ) {
+
+      const text =
+        base64ToUtf8(
+          data.content
+        );
+
+
+      receiverText.value =
+        text;
+
+
+      document.getElementById(
+        'receiveFile'
+      ).textContent =
+        data.path;
+
+
+      document.getElementById(
+        'receiveLength'
+      ).textContent =
+        text.length
+          .toLocaleString()
+        +
+        '자';
+
+
+      document.getElementById(
+        'receiveTime'
+      ).textContent =
+        new Date()
+          .toLocaleTimeString();
+
+
+      if (
+        !firstReceiverLoad &&
+        changed
+      ) {
+
+        setReceiveStatus(
+          '● 새 코드 도착!\n' +
+          new Date()
+            .toLocaleString()
+        );
+
+
+        const card =
+          document.getElementById(
+            'receiverCard'
+          );
+
+
+        card.classList.remove(
+          'newFlash'
+        );
+
+
+        void card.offsetWidth;
+
+
+        card.classList.add(
+          'newFlash'
+        );
+
+
+        try {
+
+          if (
+            'Notification' in window &&
+            Notification.permission ===
+              'granted'
+          ) {
+
+            new Notification(
+              'GPT → PC',
+              {
+                body:
+                  '새 코드가 도착했습니다.'
+              }
+            );
+          }
+
+        } catch {
+        }
+
+
+      } else {
+
+        setReceiveStatus(
+          '● 연결됨\n' +
+          '5초마다 자동 확인'
+        );
+      }
+
+
+      lastSha =
+        data.sha;
+
+
+      firstReceiverLoad =
+        false;
+
+
+    } else {
+
+      setReceiveStatus(
+        '● 연결됨\n' +
+        '새 코드 대기 중\n' +
+        new Date()
+          .toLocaleTimeString()
+      );
+    }
+
+
+  } catch (error) {
+
+    setReceiveStatus(
+      '연결 오류\n\n' +
+      error.message +
+      '\n\nGitHub 연결 설정을 확인하세요.'
+    );
+
+
+    document.getElementById(
+      'settingsDetails'
+    ).open =
+      true;
+  }
+}
+
+
+async function copyReceiverText() {
+
+  const text =
+    receiverText.value;
+
+
+  if (!text) {
+
+    setReceiveStatus(
+      '복사할 코드가 없습니다.'
+    );
+
+    return;
+  }
+
+
+  try {
+
+    await navigator
+      .clipboard
+      .writeText(
+        text
+      );
+
+
+    setReceiveStatus(
+      '클립보드 복사 완료\n' +
+      text.length
+        .toLocaleString()
+      +
+      '자'
+    );
+
+
+  } catch {
+
+    receiverText.focus();
+
+    receiverText.select();
+
+
+    setReceiveStatus(
+      '자동 복사가 제한되었습니다.\n' +
+      '코드를 전체 선택했습니다. Ctrl+C를 누르세요.'
+    );
+  }
+}
+
+
+/* ==========================================================
+   CONNECTION
+========================================================== */
+
+async function testConnection() {
+
+  try {
+
+    saveSettings();
+
+
+    const s =
+      getSettings();
+
+
+    const status =
+      currentMode ===
+      'receive'
+        ? setReceiveStatus
+        : setSendStatus;
+
+
+    status(
+      'GitHub 연결 테스트 중...'
+    );
+
+
+    const url =
+      'https://api.github.com/repos/' +
+      encodeURIComponent(
+        s.owner
+      ) +
+      '/' +
+      encodeURIComponent(
+        s.repo
+      );
+
+
+    const response =
+      await fetch(
+        url,
+        {
+          headers:
+            headers(
+              s.token
+            )
+        }
+      );
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        'GitHub 응답 ' +
+        response.status
+      );
+    }
+
+
+    const repo =
+      await response.json();
+
+
+    status(
+      'GitHub 연결 성공\n\n' +
+      repo.full_name +
+      '\nPrivate: ' +
+      repo.private +
+      '\nBranch: ' +
+      repo.default_branch
+    );
+
+
+  } catch (error) {
+
+    const status =
+      currentMode ===
+      'receive'
+        ? setReceiveStatus
+        : setSendStatus;
+
+
+    status(
+      'GitHub 연결 실패\n\n' +
+      error.message
+    );
+  }
+}
+
+
+function clearToken() {
+
+  localStorage.removeItem(
+    'githubToken'
+  );
+
+
+  document.getElementById(
+    'token'
+  ).value =
+    '';
+
+
+  if (
+    currentMode ===
+    'receive'
+  ) {
+
+    setReceiveStatus(
+      '이 PC에서 저장된 토큰을 삭제했습니다.'
+    );
+
+  } else {
+
+    setSendStatus(
+      '휴대폰에서 저장된 토큰을 삭제했습니다.'
+    );
+  }
+}
+
+
+/* ==========================================================
+   START
+========================================================== */
+
+loadSettings();
+
+updateSendCount();
+
+
+const requestedMode =
+  new URLSearchParams(
+    location.search
+  ).get(
+    'mode'
+  );
+
+
+if (
+  requestedMode ===
+  'receive'
+) {
+
+  setMode(
+    'receive'
+  );
+
+} else {
+
+  setMode(
+    'send'
+  );
+}
+
+
+if (
+  'serviceWorker' in navigator
+) {
+
+  navigator
+    .serviceWorker
+    .register(
+      './sw.js'
+    )
+    .then(
+      registration =>
+        registration.update()
+    )
+    .catch(
+      () => {}
+    );
+}
+
+</script>
+
+
+<a
+  href="./result.html"
+  style="
+    position:fixed;
+    right:16px;
+    bottom:16px;
+    z-index:9999;
+    padding:13px 16px;
+    border-radius:999px;
+    background:#dc2626;
+    color:white;
+    text-decoration:none;
+    font-family:system-ui,sans-serif;
+    font-weight:800;
+    box-shadow:0 8px 24px rgba(0,0,0,.35);
+  "
+>
+PC 실행 결과
+</a>
+<!-- GPT_MULTIUSER_START -->
+
+<script>
+
+(function () {
+
+  const settings =
+    document.getElementById(
+      'settingsDetails'
+    );
+
+  const sendPath =
+    document.getElementById(
+      'sendPath'
+    );
+
+
+  if (!settings || !sendPath) {
+    return;
+  }
+
+
+  function cleanUserId(value) {
+
+    return String(
+      value || ''
+    )
+      .trim()
+      .toLowerCase()
+      .replace(
+        /[^a-z0-9._-]/g,
+        '-'
+      )
+      .replace(
+        /-+/g,
+        '-'
+      )
+      .replace(
+        /^[-.]+|[-.]+$/g,
+        ''
+      );
+  }
+
+
+  const wrapper =
+    document.createElement(
+      'div'
+    );
+
+
+  wrapper.id =
+    'multiUserSettings';
+
+
+  wrapper.innerHTML = `
+    <label>
+      User ID
+    </label>
+
+    <input
+      id="bridgeUserId"
+      placeholder="예: sv40 / tester1"
+      autocomplete="off"
+    >
+
+    <div
+      style="
+        margin-top:6px;
+        color:#9ca3af;
+        font-size:12px;
+        line-height:1.5;
+      "
+    >
+      같은 저장소를 사용하더라도 User ID가 다르면 서로 완전히 분리됩니다.
+    </div>
+  `;
+
+
+  const summary =
+    settings.querySelector(
+      'summary'
+    );
+
+
+  if (summary) {
+
+    summary.insertAdjacentElement(
+      'afterend',
+      wrapper
+    );
+
+  } else {
+
+    settings.prepend(
+      wrapper
+    );
+  }
+
+
+  const userInput =
+    document.getElementById(
+      'bridgeUserId'
+    );
+
+
+  userInput.value =
+    localStorage.getItem(
+      'bridgeUserId'
+    ) || 'user1';
+
+
+  function updatePath() {
+
+    let userId =
+      cleanUserId(
+        userInput.value
+      );
+
+
+    if (!userId) {
+
+      userId =
+        'user1';
+    }
+
+
+    userInput.value =
+      userId;
+
+
+    localStorage.setItem(
+      'bridgeUserId',
+      userId
+    );
+
+
+    const path =
+      'users/' +
+      userId +
+      '/inbox/latest.ps1';
+
+
+    sendPath.value =
+      path;
+
+
+    sendPath.readOnly =
+      true;
+
+
+    localStorage.setItem(
+      'githubPath',
+      path
+    );
+  }
+
+
+  userInput.addEventListener(
+    'change',
+    updatePath
+  );
+
+
+  userInput.addEventListener(
+    'blur',
+    updatePath
+  );
+
+
+  updatePath();
+
+
+  // 기존 saveSettings에 User ID 저장 기능 추가
+  if (
+    typeof window.saveSettings ===
+    'function'
+  ) {
+
+    const originalSaveSettings =
+      window.saveSettings;
+
+
+    window.saveSettings =
+      function () {
+
+        updatePath();
+
+        return originalSaveSettings();
+      };
+  }
+
+
+  // result.html로 이동할 때 User ID도 localStorage로 공유됨
+  const resultLink =
+    Array
+      .from(
+        document.querySelectorAll(
+          'a'
+        )
+      )
+      .find(
+        item =>
+          String(
+            item.getAttribute(
+              'href'
+            ) || ''
+          ).includes(
+            'result.html'
+          )
+      );
+
+
+  if (resultLink) {
+
+    resultLink.addEventListener(
+      'click',
+      updatePath
+    );
+  }
+
+})();
+
+</script>
+
+<!-- GPT_MULTIUSER_END -->
+<!-- GPT_TEXT_BRIDGE_START -->
+
+<style>
+
+#gptTextMode {
+  display: none;
+}
+
+#gptTextMode.gpt-text-visible {
+  display: block;
+}
+
+.gpt-text-role {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.gpt-text-role button {
+  margin-top: 0;
+}
+
+.gpt-text-role .selected {
+  background: #7c3aed;
+}
+
+.gpt-text-role .unselected {
+  background: #374151;
+}
+
+.gpt-text-box {
+  min-height: 220px;
+}
+
+.gpt-text-receive-box {
+  min-height: 260px;
+}
+
+.gpt-text-info {
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 9px;
+  background: #111827;
+  color: #9ca3af;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.gpt-text-status {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 9px;
+  background: #111827;
+  white-space: pre-wrap;
+}
+
+@media(max-width:600px) {
+
+  .gpt-text-role {
+    grid-template-columns: 1fr;
+  }
+}
+
+</style>
+
+
+<script>
+
+(function () {
+
+  const TEXT_POLL_MS =
+    5000;
+
+  let textMonitorTimer =
+    null;
+
+  let lastIncomingSha =
+    '';
+
+
+  // =========================================================
+  // HELPERS
+  // =========================================================
+
+  function byId(id) {
+
+    return document.getElementById(
+      id
+    );
+  }
+
+
+  function cleanUserId(value) {
+
+    return String(
+      value || ''
+    )
+      .trim()
+      .toLowerCase()
+      .replace(
+        /[^a-z0-9._-]/g,
+        '-'
+      )
+      .replace(
+        /-+/g,
+        '-'
+      )
+      .replace(
+        /^[-.]+|[-.]+$/g,
+        ''
+      );
+  }
+
+
+  function defaultRole() {
+
+    const mobile =
+      /Android|iPhone|iPad|Mobile/i
+        .test(
+          navigator.userAgent
+        );
+
+    return mobile
+      ? 'phone'
+      : 'pc';
+  }
+
+
+  function getRole() {
+
+    return (
+      localStorage.getItem(
+        'bridgeDeviceRole'
+      ) ||
+      defaultRole()
+    );
+  }
+
+
+  function setRole(role) {
+
+    localStorage.setItem(
+      'bridgeDeviceRole',
+      role
+    );
+
+    updateRoleUi();
+
+    loadIncomingText(
+      true
+    );
+  }
+
+
+  function getUserId() {
+
+    const input =
+      byId(
+        'bridgeUserId'
+      );
+
+    let value =
+      input
+        ? input.value
+        : localStorage.getItem(
+            'bridgeUserId'
+          );
+
+
+    value =
+      cleanUserId(
+        value
+      );
+
+
+    if (!value) {
+
+      value =
+        'user1';
+    }
+
+
+    localStorage.setItem(
+      'bridgeUserId',
+      value
+    );
+
+
+    return value;
+  }
+
+
+  function getTextSettings() {
+
+    const owner =
+      byId('owner')
+        ? byId('owner').value.trim()
+        : localStorage.getItem(
+            'githubOwner'
+          ) || 'joo-ec';
+
+
+    const repo =
+      byId('repo')
+        ? byId('repo').value.trim()
+        : localStorage.getItem(
+            'githubRepo'
+          ) || 'gpt-to-pc-data';
+
+
+    const branch =
+      byId('branch')
+        ? byId('branch').value.trim()
+        : localStorage.getItem(
+            'githubBranch'
+          ) || 'main';
+
+
+    const token =
+      byId('token')
+        ? byId('token').value.trim()
+        : localStorage.getItem(
+            'githubToken'
+          ) || '';
+
+
+    if (!owner) {
+
+      throw new Error(
+        'GitHub 사용자명이 없습니다.'
+      );
+    }
+
+
+    if (!repo) {
+
+      throw new Error(
+        'Repository가 없습니다.'
+      );
+    }
+
+
+    if (!branch) {
+
+      throw new Error(
+        'Branch가 없습니다.'
+      );
+    }
+
+
+    if (!token) {
+
+      throw new Error(
+        'GitHub PAT가 없습니다.'
+      );
+    }
+
+
+    return {
+      owner,
+      repo,
+      branch,
+      token,
+      userId:
+        getUserId(),
+      role:
+        getRole()
+    };
+  }
+
+
+  function textHeaders(token) {
+
+    return {
+
+      Accept:
+        'application/vnd.github+json',
+
+      Authorization:
+        'Bearer ' + token,
+
+      'X-GitHub-Api-Version':
+        '2022-11-28'
+    };
+  }
+
+
+  function textApiUrl(
+    settings,
+    path
+  ) {
+
+    return (
+      'https://api.github.com/repos/' +
+      encodeURIComponent(
+        settings.owner
+      ) +
+      '/' +
+      encodeURIComponent(
+        settings.repo
+      ) +
+      '/contents/' +
+      path
+        .split('/')
+        .map(
+          encodeURIComponent
+        )
+        .join('/')
+    );
+  }
+
+
+  function outgoingPath(settings) {
+
+    if (
+      settings.role ===
+      'phone'
+    ) {
+
+      return (
+        'users/' +
+        settings.userId +
+        '/text/phone-to-pc.txt'
+      );
+    }
+
+
+    return (
+      'users/' +
+      settings.userId +
+      '/text/pc-to-phone.txt'
+    );
+  }
+
+
+  function incomingPath(settings) {
+
+    if (
+      settings.role ===
+      'phone'
+    ) {
+
+      return (
+        'users/' +
+        settings.userId +
+        '/text/pc-to-phone.txt'
+      );
+    }
+
+
+    return (
+      'users/' +
+      settings.userId +
+      '/text/phone-to-pc.txt'
+    );
+  }
+
+
+  function textUtf8ToBase64(text) {
+
+    const bytes =
+      new TextEncoder()
+        .encode(text);
+
+
+    let binary =
+      '';
+
+
+    const chunk =
+      0x8000;
+
+
+    for (
+      let i = 0;
+      i < bytes.length;
+      i += chunk
+    ) {
+
+      binary +=
+        String.fromCharCode.apply(
+          null,
+          bytes.subarray(
+            i,
+            i + chunk
+          )
+        );
+    }
+
+
+    return btoa(binary);
+  }
+
+
+  function textBase64ToUtf8(value) {
+
+    const binary =
+      atob(
+        String(value || '')
+          .replace(/\s/g, '')
+      );
+
+
+    const bytes =
+      new Uint8Array(
+        binary.length
+      );
+
+
+    for (
+      let i = 0;
+      i < binary.length;
+      i++
+    ) {
+
+      bytes[i] =
+        binary.charCodeAt(i);
+    }
+
+
+    return new TextDecoder(
+      'utf-8'
+    ).decode(bytes);
+  }
+
+
+  function setTextStatus(text) {
+
+    const target =
+      byId(
+        'gptTextStatus'
+      );
+
+
+    if (target) {
+
+      target.textContent =
+        text;
+    }
+  }
+
+
+  function waitText(ms) {
+
+    return new Promise(
+      resolve =>
+        setTimeout(
+          resolve,
+          ms
+        )
+    );
+  }
+
+
+  // =========================================================
+  // GITHUB FILE
+  // =========================================================
+
+  async function getGitHubTextFile(
+    settings,
+    path
+  ) {
+
+    const response =
+      await fetch(
+        textApiUrl(
+          settings,
+          path
+        ) +
+        '?ref=' +
+        encodeURIComponent(
+          settings.branch
+        ) +
+        '&_=' +
+        Date.now(),
+        {
+          cache:
+            'no-store',
+
+          headers:
+            textHeaders(
+              settings.token
+            )
+        }
+      );
+
+
+    if (
+      response.status === 404
+    ) {
+
+      return null;
+    }
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        'GitHub 조회 실패: ' +
+        response.status
+      );
+    }
+
+
+    return await response.json();
+  }
+
+
+  async function putGitHubTextFile(
+    settings,
+    path,
+    text
+  ) {
+
+    const url =
+      textApiUrl(
+        settings,
+        path
+      );
+
+
+    let lastError =
+      null;
+
+
+    for (
+      let attempt = 1;
+      attempt <= 5;
+      attempt++
+    ) {
+
+      try {
+
+        let sha =
+          null;
+
+
+        const existing =
+          await getGitHubTextFile(
+            settings,
+            path
+          );
+
+
+        if (existing) {
+
+          sha =
+            existing.sha;
+        }
+
+
+        const body = {
+
+          message:
+            'GPT Text Bridge ' +
+            settings.userId +
+            ' ' +
+            new Date()
+              .toISOString(),
+
+          content:
+            textUtf8ToBase64(
+              text
+            ),
+
+          branch:
+            settings.branch
+        };
+
+
+        if (sha) {
+
+          body.sha =
+            sha;
+        }
+
+
+        const response =
+          await fetch(
+            url,
+            {
+              method:
+                'PUT',
+
+              cache:
+                'no-store',
+
+              headers: {
+
+                ...textHeaders(
+                  settings.token
+                ),
+
+                'Content-Type':
+                  'application/json'
+              },
+
+              body:
+                JSON.stringify(
+                  body
+                )
+            }
+          );
+
+
+        if (response.ok) {
+
+          return await response.json();
+        }
+
+
+        let detail =
+          response.status +
+          ' ' +
+          response.statusText;
+
+
+        try {
+
+          const error =
+            await response.json();
+
+
+          if (error.message) {
+
+            detail =
+              error.message;
+          }
+
+        } catch {
+        }
+
+
+        const lower =
+          detail.toLowerCase();
+
+
+        const retry =
+          response.status === 409 ||
+          response.status === 422 ||
+          lower.includes(
+            'does not match'
+          );
+
+
+        if (
+          retry &&
+          attempt < 5
+        ) {
+
+          await waitText(
+            400 * attempt
+          );
+
+          continue;
+        }
+
+
+        throw new Error(
+          detail
+        );
+
+      } catch (error) {
+
+        lastError =
+          error;
+
+
+        if (attempt >= 5) {
+
+          throw error;
+        }
+
+
+        await waitText(
+          500 * attempt
+        );
+      }
+    }
+
+
+    throw (
+      lastError ||
+      new Error(
+        '텍스트 전송 실패'
+      )
+    );
+  }
+
+
+  // =========================================================
+  // SEND
+  // =========================================================
+
+  async function sendTextCurrent() {
+
+    try {
+
+      const settings =
+        getTextSettings();
+
+
+      const textarea =
+        byId(
+          'gptTextSend'
+        );
+
+
+      const text =
+        textarea.value;
+
+
+      if (!text) {
+
+        throw new Error(
+          '전송할 텍스트가 없습니다.'
+        );
+      }
+
+
+      const path =
+        outgoingPath(
+          settings
+        );
+
+
+      setTextStatus(
+        '텍스트 전송 중...\n' +
+        path +
+        '\n' +
+        text.length.toLocaleString() +
+        '자'
+      );
+
+
+      await putGitHubTextFile(
+        settings,
+        path,
+        text
+      );
+
+
+      setTextStatus(
+        '✅ 텍스트 전송 완료\n\n' +
+        (
+          settings.role ===
+          'phone'
+            ? '휴대폰 → PC'
+            : 'PC → 휴대폰'
+        ) +
+        '\n' +
+        text.length.toLocaleString() +
+        '자'
+      );
+
+    } catch (error) {
+
+      setTextStatus(
+        '❌ 텍스트 전송 실패\n\n' +
+        error.message
+      );
+    }
+  }
+
+
+  async function clipboardToText() {
+
+    try {
+
+      if (
+        !navigator.clipboard ||
+        !navigator.clipboard.readText
+      ) {
+
+        throw new Error(
+          '이 브라우저에서는 클립보드 읽기를 지원하지 않습니다.'
+        );
+      }
+
+
+      const text =
+        await navigator
+          .clipboard
+          .readText();
+
+
+      if (!text) {
+
+        throw new Error(
+          '클립보드가 비어 있습니다.'
+        );
+      }
+
+
+      byId(
+        'gptTextSend'
+      ).value =
+        text;
+
+
+      setTextStatus(
+        '클립보드 읽기 완료\n' +
+        text.length.toLocaleString() +
+        '자'
+      );
+
+    } catch (error) {
+
+      setTextStatus(
+        '클립보드 읽기 실패\n\n' +
+        error.message
+      );
+    }
+  }
+
+
+  async function clipboardAndSendText() {
+
+    await clipboardToText();
+
+
+    if (
+      byId('gptTextSend')
+        .value
+    ) {
+
+      await sendTextCurrent();
+    }
+  }
+
+
+  // =========================================================
+  // RECEIVE
+  // =========================================================
+
+  async function loadIncomingText(
+    manual
+  ) {
+
+    try {
+
+      const settings =
+        getTextSettings();
+
+
+      const path =
+        incomingPath(
+          settings
+        );
+
+
+      if (manual) {
+
+        setTextStatus(
+          '상대방 텍스트 확인 중...\n' +
+          path
+        );
+      }
+
+
+      const file =
+        await getGitHubTextFile(
+          settings,
+          path
+        );
+
+
+      if (!file) {
+
+        if (manual) {
+
+          setTextStatus(
+            '아직 상대방이 보낸 텍스트가 없습니다.'
+          );
+        }
+
+
+        return;
+      }
+
+
+      const changed =
+        file.sha !==
+        lastIncomingSha;
+
+
+      if (
+        changed ||
+        manual
+      ) {
+
+        const text =
+          textBase64ToUtf8(
+            file.content
+          );
+
+
+        byId(
+          'gptTextReceive'
+        ).value =
+          text;
+
+
+        lastIncomingSha =
+          file.sha;
+
+
+        setTextStatus(
+          (
+            changed
+              ? '📩 새 텍스트 수신'
+              : '✅ 최신 텍스트 확인'
+          ) +
+          '\n\n' +
+          (
+            settings.role ===
+            'phone'
+              ? 'PC → 휴대폰'
+              : '휴대폰 → PC'
+          ) +
+          '\n' +
+          text.length.toLocaleString() +
+          '자\n' +
+          new Date()
+            .toLocaleTimeString()
+        );
+      }
+
+    } catch (error) {
+
+      if (manual) {
+
+        setTextStatus(
+          '텍스트 수신 실패\n\n' +
+          error.message
+        );
+      }
+    }
+  }
+
+
+  async function copyIncomingText() {
+
+    const text =
+      byId(
+        'gptTextReceive'
+      ).value;
+
+
+    if (!text) {
+
+      alert(
+        '복사할 수신 텍스트가 없습니다.'
+      );
+
+      return;
+    }
+
+
+    try {
+
+      await navigator
+        .clipboard
+        .writeText(text);
+
+
+      setTextStatus(
+        '수신 텍스트를 클립보드에 복사했습니다.'
+      );
+
+    } catch {
+
+      const box =
+        byId(
+          'gptTextReceive'
+        );
+
+
+      box.focus();
+      box.select();
+
+
+      setTextStatus(
+        '자동 복사가 제한되었습니다.\nCtrl+C 또는 복사를 사용하세요.'
+      );
+    }
+  }
+
+
+  // =========================================================
+  // UI
+  // =========================================================
+
+  function updateRoleUi() {
+
+    const role =
+      getRole();
+
+
+    const phone =
+      byId(
+        'gptTextRolePhone'
+      );
+
+
+    const pc =
+      byId(
+        'gptTextRolePc'
+      );
+
+
+    if (!phone || !pc) {
+      return;
+    }
+
+
+    phone.className =
+      role === 'phone'
+        ? 'selected'
+        : 'unselected';
+
+
+    pc.className =
+      role === 'pc'
+        ? 'selected'
+        : 'unselected';
+
+
+    const settings =
+      {
+        role,
+        userId:
+          getUserId()
+      };
+
+
+    const info =
+      byId(
+        'gptTextPathInfo'
+      );
+
+
+    if (info) {
+
+      info.textContent =
+        '보내는 경로\n' +
+        outgoingPath(
+          settings
+        ) +
+        '\n\n받는 경로\n' +
+        incomingPath(
+          settings
+        );
+    }
+  }
+
+
+  function showTextMode() {
+
+    const sendMode =
+      byId(
+        'sendMode'
+      );
+
+    const receiveMode =
+      byId(
+        'receiveMode'
+      );
+
+    const textMode =
+      byId(
+        'gptTextMode'
+      );
+
+
+    if (sendMode) {
+
+      sendMode.classList.add(
+        'hidden'
+      );
+    }
+
+
+    if (receiveMode) {
+
+      receiveMode.classList.add(
+        'hidden'
+      );
+    }
+
+
+    textMode.classList.add(
+      'gpt-text-visible'
+    );
+
+
+    const sendButton =
+      byId(
+        'sendModeButton'
+      );
+
+    const receiveButton =
+      byId(
+        'receiveModeButton'
+      );
+
+    const textButton =
+      byId(
+        'gptTextModeButton'
+      );
+
+
+    if (sendButton) {
+
+      sendButton.className =
+        'inactive';
+    }
+
+
+    if (receiveButton) {
+
+      receiveButton.className =
+        'inactive';
+    }
+
+
+    textButton.className =
+      'active';
+
+
+    const subtitle =
+      byId(
+        'subtitle'
+      );
+
+
+    if (subtitle) {
+
+      subtitle.textContent =
+        '휴대폰과 PC 사이에서 클립보드 텍스트를 양방향으로 전달합니다.';
+    }
+
+
+    const url =
+      new URL(
+        location.href
+      );
+
+
+    url.searchParams.set(
+      'mode',
+      'text'
+    );
+
+
+    history.replaceState(
+      {},
+      '',
+      url
+    );
+
+
+    updateRoleUi();
+
+    loadIncomingText(
+      true
+    );
+
+
+    if (textMonitorTimer) {
+
+      clearInterval(
+        textMonitorTimer
+      );
+    }
+
+
+    textMonitorTimer =
+      setInterval(
+        () => {
+
+          if (
+            byId('gptTextMode')
+              .classList
+              .contains(
+                'gpt-text-visible'
+              )
+          ) {
+
+            loadIncomingText(
+              false
+            );
+          }
+
+        },
+        TEXT_POLL_MS
+      );
+  }
+
+
+  // =========================================================
+  // 기존 탭 동작과 연결
+  // =========================================================
+
+  const originalSetMode =
+    window.setMode;
+
+
+  if (
+    typeof originalSetMode ===
+    'function'
+  ) {
+
+    window.setMode =
+      function (mode) {
+
+        const textMode =
+          byId(
+            'gptTextMode'
+          );
+
+
+        if (textMode) {
+
+          textMode.classList.remove(
+            'gpt-text-visible'
+          );
+        }
+
+
+        const textButton =
+          byId(
+            'gptTextModeButton'
+          );
+
+
+        if (textButton) {
+
+          textButton.className =
+            'inactive';
+        }
+
+
+        return originalSetMode(
+          mode
+        );
+      };
+  }
+
+
+  // =========================================================
+  // 탭 버튼 추가
+  // =========================================================
+
+  const modeBar =
+    document.querySelector(
+      '.modebar'
+    );
+
+
+  if (!modeBar) {
+    return;
+  }
+
+
+  const textButton =
+    document.createElement(
+      'button'
+    );
+
+
+  textButton.id =
+    'gptTextModeButton';
+
+  textButton.className =
+    'inactive';
+
+  textButton.textContent =
+    '텍스트 교환';
+
+  textButton.addEventListener(
+    'click',
+    showTextMode
+  );
+
+
+  modeBar.appendChild(
+    textButton
+  );
+
+
+  // =========================================================
+  // Text Mode 화면 생성
+  // =========================================================
+
+  const textMode =
+    document.createElement(
+      'div'
+    );
+
+
+  textMode.id =
+    'gptTextMode';
+
+
+  textMode.innerHTML = `
+
+    <div class="card">
+
+      <label>
+        이 기기의 역할
+      </label>
+
+      <div class="gpt-text-role">
+
+        <button
+          id="gptTextRolePhone"
+          type="button"
+        >
+          📱 휴대폰
+        </button>
+
+        <button
+          id="gptTextRolePc"
+          type="button"
+        >
+          💻 PC
+        </button>
+
+      </div>
+
+      <div
+        id="gptTextPathInfo"
+        class="gpt-text-info"
+      ></div>
+
+    </div>
+
+
+    <div class="card">
+
+      <label>
+        상대방에게 보낼 텍스트
+      </label>
+
+      <textarea
+        id="gptTextSend"
+        class="gpt-text-box"
+        placeholder="클립보드를 읽거나 직접 텍스트를 입력하세요."
+      ></textarea>
+
+
+      <button
+        id="gptTextClipboardSend"
+        class="green"
+        type="button"
+      >
+        클립보드 읽고 바로 전송
+      </button>
+
+
+      <button
+        id="gptTextClipboardRead"
+        class="blue"
+        type="button"
+      >
+        클립보드만 가져오기
+      </button>
+
+
+      <button
+        id="gptTextCurrentSend"
+        class="gray"
+        type="button"
+      >
+        현재 텍스트 전송
+      </button>
+
+
+      <button
+        id="gptTextClear"
+        class="red"
+        type="button"
+      >
+        입력 내용 지우기
+      </button>
+
+    </div>
+
+
+    <div class="card">
+
+      <label>
+        상대방에게서 받은 최신 텍스트
+      </label>
+
+      <textarea
+        id="gptTextReceive"
+        class="gpt-text-receive-box"
+        readonly
+      ></textarea>
+
+
+      <button
+        id="gptTextRefresh"
+        class="blue"
+        type="button"
+      >
+        지금 새로고침
+      </button>
+
+
+      <button
+        id="gptTextCopy"
+        class="green"
+        type="button"
+      >
+        받은 텍스트 클립보드 복사
+      </button>
+
+    </div>
+
+
+    <div class="card">
+
+      <div
+        id="gptTextStatus"
+        class="gpt-text-status"
+      >
+        텍스트 교환 준비됨
+      </div>
+
+    </div>
+  `;
+
+
+  const receiveMode =
+    byId(
+      'receiveMode'
+    );
+
+
+  if (receiveMode) {
+
+    receiveMode.insertAdjacentElement(
+      'afterend',
+      textMode
+    );
+
+  } else {
+
+    modeBar.insertAdjacentElement(
+      'afterend',
+      textMode
+    );
+  }
+
+
+  // =========================================================
+  // 이벤트
+  // =========================================================
+
+  byId(
+    'gptTextRolePhone'
+  ).addEventListener(
+    'click',
+    () =>
+      setRole(
+        'phone'
+      )
+  );
+
+
+  byId(
+    'gptTextRolePc'
+  ).addEventListener(
+    'click',
+    () =>
+      setRole(
+        'pc'
+      )
+  );
+
+
+  byId(
+    'gptTextClipboardRead'
+  ).addEventListener(
+    'click',
+    clipboardToText
+  );
+
+
+  byId(
+    'gptTextClipboardSend'
+  ).addEventListener(
+    'click',
+    clipboardAndSendText
+  );
+
+
+  byId(
+    'gptTextCurrentSend'
+  ).addEventListener(
+    'click',
+    sendTextCurrent
+  );
+
+
+  byId(
+    'gptTextClear'
+  ).addEventListener(
+    'click',
+    () => {
+
+      byId(
+        'gptTextSend'
+      ).value =
+        '';
+
+      setTextStatus(
+        '입력 내용을 지웠습니다.'
+      );
+    }
+  );
+
+
+  byId(
+    'gptTextRefresh'
+  ).addEventListener(
+    'click',
+    () =>
+      loadIncomingText(
+        true
+      )
+  );
+
+
+  byId(
+    'gptTextCopy'
+  ).addEventListener(
+    'click',
+    copyIncomingText
+  );
+
+
+  updateRoleUi();
+
+
+  // URL이 ?mode=text 라면 바로 텍스트 탭
+  const requestedMode =
+    new URLSearchParams(
+      location.search
+    ).get(
+      'mode'
+    );
+
+
+  if (
+    requestedMode ===
+    'text'
+  ) {
+
+    showTextMode();
+  }
+
+})();
+
+</script>
+
+<!-- GPT_TEXT_BRIDGE_END -->
+<!-- GPT_TEXT_ACCORDION_V2_START -->
+
+<style>
+
+/* ==========================================================
+   TEXT BRIDGE - BALANCED SIZE
+========================================================== */
+
+#gptTextMode {
+  font-size: 14px !important;
+}
+
+#gptTextMode .card {
+  padding: 14px !important;
+  margin-bottom: 10px !important;
+}
+
+#gptTextMode label {
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+}
+
+#gptTextMode button {
+  min-height: 41px !important;
+  padding: 9px 13px !important;
+  font-size: 13px !important;
+  border-radius: 10px !important;
+}
+
+#gptTextMode .gpt-text-role button {
+  min-height: 40px !important;
+  font-size: 13px !important;
+}
+
+#gptTextMode textarea {
+  min-height: 175px !important;
+  max-height: 46vh !important;
+  padding: 11px !important;
+  font-size: 13px !important;
+  line-height: 1.55 !important;
+}
+
+#gptTextMode .gpt-text-info {
+  padding: 9px 10px !important;
+  font-size: 11px !important;
+  line-height: 1.5 !important;
+}
+
+#gptTextMode .gpt-text-status {
+  padding: 10px 11px !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+
+
+/* ==========================================================
+   ACCORDION
+========================================================== */
+
+#gptTextMode .gpt-accordion-card {
+  padding: 0 !important;
+  overflow: hidden;
+
+  border:
+    1px solid
+    rgba(255,255,255,.09) !important;
+
+  border-radius:
+    14px !important;
+
+  background:
+    rgba(24,27,35,.82) !important;
+}
+
+
+.gpt-accordion-header {
+  width: 100% !important;
+  min-height: 50px !important;
+
+  margin: 0 !important;
+  padding: 10px 13px !important;
+
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 10px;
+
+  border: 0 !important;
+  border-radius: 0 !important;
+
+  background:
+    rgba(255,255,255,.035) !important;
+
+  color:
+    #f0f2f5 !important;
+
+  box-shadow:
+    none !important;
+
+  text-align:
+    left !important;
+}
+
+
+.gpt-accordion-header:active {
+  transform: none !important;
+}
+
+
+.gpt-accordion-left {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+}
+
+
+.gpt-accordion-emoji {
+  flex: 0 0 auto;
+
+  font-size: 16px;
+}
+
+
+.gpt-accordion-title {
+  overflow: hidden;
+
+  font-size: 13px;
+  font-weight: 720;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+.gpt-accordion-right {
+  flex: 0 0 auto;
+
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+}
+
+
+.gpt-accordion-meta {
+  color:
+    #8d95a3;
+
+  font-size:
+    11px;
+
+  font-weight:
+    550;
+}
+
+
+.gpt-accordion-arrow {
+  color:
+    #8d95a3;
+
+  font-size:
+    12px;
+
+  transition:
+    transform .18s ease;
+}
+
+
+.gpt-accordion-card.gpt-open
+.gpt-accordion-arrow {
+  transform:
+    rotate(180deg);
+}
+
+
+.gpt-accordion-body {
+  display:
+    none;
+
+  padding:
+    12px 13px 13px;
+
+  border-top:
+    1px solid
+    rgba(255,255,255,.065);
+}
+
+
+.gpt-accordion-card.gpt-open
+.gpt-accordion-body {
+  display:
+    block;
+}
+
+
+/* textarea가 아코디언 내부일 때 */
+
+.gpt-accordion-body textarea {
+  margin-top: 0 !important;
+}
+
+
+/* ==========================================================
+   MOBILE
+========================================================== */
+
+@media(max-width:600px) {
+
+  #gptTextMode {
+    font-size: 14px !important;
+  }
+
+  #gptTextMode .card {
+    padding: 12px !important;
+  }
+
+  #gptTextMode button {
+    min-height: 40px !important;
+    padding: 9px 11px !important;
+    font-size: 13px !important;
+  }
+
+  #gptTextMode textarea {
+    min-height: 160px !important;
+  }
+
+  .gpt-accordion-header {
+    min-height: 48px !important;
+    padding: 10px 11px !important;
+  }
+
+  .gpt-accordion-body {
+    padding: 11px !important;
+  }
+
+  .gpt-accordion-title {
+    font-size: 12px;
+  }
+
+}
+
+</style>
+
+
+<script>
+
+(function () {
+
+  'use strict';
+
+
+  function byId(id) {
+
+    return document.getElementById(
+      id
+    );
+  }
+
+
+  function setAccordionOpen(
+    card,
+    open
+  ) {
+
+    if (!card) {
+      return;
+    }
+
+
+    if (open) {
+
+      card.classList.add(
+        'gpt-open'
+      );
+
+    } else {
+
+      card.classList.remove(
+        'gpt-open'
+      );
+    }
+  }
+
+
+  function toggleAccordion(card) {
+
+    if (!card) {
+      return;
+    }
+
+
+    card.classList.toggle(
+      'gpt-open'
+    );
+  }
+
+
+  function createHeader(
+    emoji,
+    title,
+    metaId
+  ) {
+
+    const header =
+      document.createElement(
+        'button'
+      );
+
+
+    header.type =
+      'button';
+
+
+    header.className =
+      'gpt-accordion-header';
+
+
+    const left =
+      document.createElement(
+        'span'
+      );
+
+
+    left.className =
+      'gpt-accordion-left';
+
+
+    const emojiSpan =
+      document.createElement(
+        'span'
+      );
+
+
+    emojiSpan.className =
+      'gpt-accordion-emoji';
+
+
+    emojiSpan.textContent =
+      emoji;
+
+
+    const titleSpan =
+      document.createElement(
+        'span'
+      );
+
+
+    titleSpan.className =
+      'gpt-accordion-title';
+
+
+    titleSpan.textContent =
+      title;
+
+
+    left.appendChild(
+      emojiSpan
+    );
+
+
+    left.appendChild(
+      titleSpan
+    );
+
+
+    const right =
+      document.createElement(
+        'span'
+      );
+
+
+    right.className =
+      'gpt-accordion-right';
+
+
+    const meta =
+      document.createElement(
+        'span'
+      );
+
+
+    meta.id =
+      metaId;
+
+
+    meta.className =
+      'gpt-accordion-meta';
+
+
+    meta.textContent =
+      '0자';
+
+
+    const arrow =
+      document.createElement(
+        'span'
+      );
+
+
+    arrow.className =
+      'gpt-accordion-arrow';
+
+
+    arrow.textContent =
+      '▼';
+
+
+    right.appendChild(
+      meta
+    );
+
+
+    right.appendChild(
+      arrow
+    );
+
+
+    header.appendChild(
+      left
+    );
+
+
+    header.appendChild(
+      right
+    );
+
+
+    return header;
+  }
+
+
+  function convertCardToAccordion(
+    card,
+    options
+  ) {
+
+    if (
+      !card ||
+      card.dataset.accordionReady ===
+      '1'
+    ) {
+
+      return null;
+    }
+
+
+    card.dataset.accordionReady =
+      '1';
+
+
+    card.classList.add(
+      'gpt-accordion-card'
+    );
+
+
+    const body =
+      document.createElement(
+        'div'
+      );
+
+
+    body.className =
+      'gpt-accordion-body';
+
+
+    while (
+      card.firstChild
+    ) {
+
+      body.appendChild(
+        card.firstChild
+      );
+    }
+
+
+    const header =
+      createHeader(
+        options.emoji,
+        options.title,
+        options.metaId
+      );
+
+
+    card.appendChild(
+      header
+    );
+
+
+    card.appendChild(
+      body
+    );
+
+
+    setAccordionOpen(
+      card,
+      options.defaultOpen
+    );
+
+
+    header.addEventListener(
+      'click',
+      function () {
+
+        toggleAccordion(
+          card
+        );
+      }
+    );
+
+
+    return {
+      card:
+        card,
+
+      header:
+        header,
+
+      body:
+        body
+    };
+  }
+
+
+  function updateMeta(
+    textAreaId,
+    metaId,
+    emptyText
+  ) {
+
+    const textarea =
+      byId(
+        textAreaId
+      );
+
+
+    const meta =
+      byId(
+        metaId
+      );
+
+
+    if (
+      !textarea ||
+      !meta
+    ) {
+
+      return;
+    }
+
+
+    const length =
+      textarea.value.length;
+
+
+    if (
+      length === 0 &&
+      emptyText
+    ) {
+
+      meta.textContent =
+        emptyText;
+
+    } else {
+
+      meta.textContent =
+        length.toLocaleString() +
+        '자';
+    }
+  }
+
+
+  function initialize() {
+
+    const textMode =
+      byId(
+        'gptTextMode'
+      );
+
+
+    const sendText =
+      byId(
+        'gptTextSend'
+      );
+
+
+    const receiveText =
+      byId(
+        'gptTextReceive'
+      );
+
+
+    if (
+      !textMode ||
+      !sendText ||
+      !receiveText
+    ) {
+
+      return false;
+    }
+
+
+    if (
+      textMode.dataset.accordionV2Ready ===
+      '1'
+    ) {
+
+      return true;
+    }
+
+
+    textMode.dataset.accordionV2Ready =
+      '1';
+
+
+    const sendCard =
+      sendText.closest(
+        '.card'
+      );
+
+
+    const receiveCard =
+      receiveText.closest(
+        '.card'
+      );
+
+
+    if (
+      !sendCard ||
+      !receiveCard
+    ) {
+
+      return false;
+    }
+
+
+    const sendAccordion =
+      convertCardToAccordion(
+        sendCard,
+        {
+          emoji:
+            '✉️',
+
+          title:
+            '상대방에게 보낼 텍스트',
+
+          metaId:
+            'gptTextSendAccordionMeta',
+
+          defaultOpen:
+            true
+        }
+      );
+
+
+    const receiveAccordion =
+      convertCardToAccordion(
+        receiveCard,
+        {
+          emoji:
+            '📥',
+
+          title:
+            '상대방에게서 받은 최신 텍스트',
+
+          metaId:
+            'gptTextReceiveAccordionMeta',
+
+          defaultOpen:
+            false
+        }
+      );
+
+
+    updateMeta(
+      'gptTextSend',
+      'gptTextSendAccordionMeta',
+      '0자'
+    );
+
+
+    updateMeta(
+      'gptTextReceive',
+      'gptTextReceiveAccordionMeta',
+      '대기 중'
+    );
+
+
+    sendText.addEventListener(
+      'input',
+      function () {
+
+        updateMeta(
+          'gptTextSend',
+          'gptTextSendAccordionMeta',
+          '0자'
+        );
+      }
+    );
+
+
+    let previousReceiveValue =
+      receiveText.value;
+
+
+    // 기존 Text Bridge 코드가 textarea.value를 직접 변경하므로
+    // 값 변경을 주기적으로 감지
+    window.setInterval(
+      function () {
+
+        updateMeta(
+          'gptTextSend',
+          'gptTextSendAccordionMeta',
+          '0자'
+        );
+
+
+        const currentValue =
+          receiveText.value;
+
+
+        if (
+          currentValue !==
+          previousReceiveValue
+        ) {
+
+          const hadPreviousText =
+            previousReceiveValue.length >
+            0;
+
+
+          previousReceiveValue =
+            currentValue;
+
+
+          updateMeta(
+            'gptTextReceive',
+            'gptTextReceiveAccordionMeta',
+            '대기 중'
+          );
+
+
+          // 새 수신 내용이 실제로 들어왔으면 자동 펼침
+          if (
+            currentValue.length >
+            0
+          ) {
+
+            setAccordionOpen(
+              receiveAccordion
+                ? receiveAccordion.card
+                : receiveCard,
+              true
+            );
+
+
+            // 새 수신 시 보내기 영역은 자동 접어서
+            // 받은 내용을 바로 보기 쉽게 함
+            if (
+              sendAccordion &&
+              hadPreviousText
+            ) {
+
+              setAccordionOpen(
+                sendAccordion.card,
+                false
+              );
+            }
+          }
+        }
+
+      },
+      500
+    );
+
+
+    return true;
+  }
+
+
+  // Text Bridge DOM이 기존 스크립트에서 생성되므로
+  // 생성 완료까지 짧게 확인
+  let attempts =
+    0;
+
+
+  const timer =
+    window.setInterval(
+      function () {
+
+        attempts++;
+
+
+        if (
+          initialize() ||
+          attempts > 100
+        ) {
+
+          window.clearInterval(
+            timer
+          );
+        }
+
+      },
+      100
+    );
+
+})();
+
+</script>
+
+<!-- GPT_TEXT_ACCORDION_V2_END -->
+</body>
+</html>.Exception.Response.StatusCode',
+      '                }',
+      '                catch {',
+      '                }',
+
+      '                if ($StatusCode -ne 404) {',
+      '                    throw',
+      '                }',
+
+      '            }',
+
+      '            $Base64 = [Convert]::ToBase64String(',
+      '                [Text.Encoding]::UTF8.GetBytes([string]$Text)',
+      '            )',
+
+      '            $Body = [ordered]@{',
+      '                message = $Message',
+      '                content = $Base64',
+      '                branch = [string]$Config.Branch',
+      '            }',
+
+      '            if ($Sha) {',
+      '                $Body.sha = $Sha',
+      '            }',
+
+      '            Invoke-RestMethod `',
+      '                -Uri (Get-ApiUrl -Path $Path) `',
+      '                -Headers (Get-Headers) `',
+      '                -Method Put `',
+      '                -ContentType "application/json" `',
+      '                -Body ($Body | ConvertTo-Json -Depth 10) `',
+      '                -TimeoutSec 60 |',
+      '                Out-Null',
+
+      '            return',
+
+      '        }',
+      '        catch {',
+
+      '            if ($Attempt -ge 5) {',
+      '                throw',
+      '            }',
+
+      '            Start-Sleep -Milliseconds (500 * $Attempt)',
+
+      '        }',
+
+      '    }',
+
+      '}',
+
+      '',
+
+      '$ResultBase = "users/" + $Config.UserId + "/analysis/"',
+
+      '$StatusRemotePath = $ResultBase + "status.json"',
+
+      '$ResultRemotePath = $ResultBase + "latest.json"',
+
+      '',
+
+      '$Started = Get-Date',
+
+      '',
+
+      '$Running = [ordered]@{',
+      '    status = "running"',
+      '    projectPath = $ProjectPath',
+      '    include = $IncludePattern',
+      '    compress = $UseCompress',
+      '    startedAt = $Started.ToString("o")',
+      '} | ConvertTo-Json -Depth 10',
+
+      '',
+
+      'Put-RemoteText `',
+      '    -Path $StatusRemotePath `',
+      '    -Text $Running `',
+      '    -Message ("Repomix running " + $Config.UserId)',
+
+      '',
+
+      '$OutputPath = Join-Path $AnalysisRoot "repomix-output.json"',
+
+      '',
+
+      'Remove-Item `',
+      '    -LiteralPath $OutputPath `',
+      '    -Force `',
+      '    -ErrorAction SilentlyContinue',
+
+      '',
+
+      '$Npx = Get-Command "npx.cmd" -ErrorAction SilentlyContinue',
+
+      '',
+
+      'if ($null -eq $Npx) {',
+      '    $Npx = Get-Command "npx" -ErrorAction SilentlyContinue',
+      '}',
+
+      '',
+
+      'if ($null -eq $Npx) {',
+      '    throw "npx를 찾을 수 없습니다. Node.js 설치를 확인하세요."',
+      '}',
+
+      '',
+
+      '$Arguments = @(',
+      '    "repomix@latest"',
+      '    "--style"',
+      '    "json"',
+      '    "--output"',
+      '    $OutputPath',
+      '    "--quiet"',
+      ')',
+
+      '',
+
+      'if (-not [string]::IsNullOrWhiteSpace($IncludePattern)) {',
+      '    $Arguments += "--include"',
+      '    $Arguments += $IncludePattern',
+      '}',
+
+      '',
+
+      'if ($UseCompress) {',
+      '    $Arguments += "--compress"',
+      '}',
+
+      '',
+
+      'Push-Location $ProjectPath',
+
+      '',
+
+      'try {',
+
+      '    & $Npx.Source @Arguments',
+
+      '    if ($LASTEXITCODE -ne 0) {',
+      '        throw ("Repomix 실행 실패. ExitCode=" + $LASTEXITCODE)',
+      '    }',
+
+      '}',
+      'finally {',
+      '    Pop-Location',
+      '}',
+
+      '',
+
+      'if (-not (Test-Path -LiteralPath $OutputPath)) {',
+      '    throw "Repomix 결과 파일이 생성되지 않았습니다."',
+      '}',
+
+      '',
+
+      '$FileInfo = Get-Item -LiteralPath $OutputPath',
+
+      '',
+
+      '$MaxBytes = 900KB',
+
+      '',
+
+      'if ($FileInfo.Length -gt $MaxBytes) {',
+
+      '    $TooLarge = [ordered]@{',
+      '        status = "too_large"',
+      '        projectPath = $ProjectPath',
+      '        bytes = $FileInfo.Length',
+      '        maxBytes = $MaxBytes',
+      '        include = $IncludePattern',
+      '        compress = $UseCompress',
+      '        endedAt = (Get-Date).ToString("o")',
+      '    } | ConvertTo-Json -Depth 10',
+
+      '    Put-RemoteText `',
+      '        -Path $StatusRemotePath `',
+      '        -Text $TooLarge `',
+      '        -Message ("Repomix too large " + $Config.UserId)',
+
+      '    Write-Host "REPOMIX_RESULT_TOO_LARGE"',
+      '    Write-Host ("Bytes: " + $FileInfo.Length)',
+
+      '    exit 0',
+
+      '}',
+
+      '',
+
+      '$ResultText = Get-Content `',
+      '    -LiteralPath $OutputPath `',
+      '    -Raw `',
+      '    -Encoding UTF8',
+
+      '',
+
+      'Put-RemoteText `',
+      '    -Path $ResultRemotePath `',
+      '    -Text $ResultText `',
+      '    -Message ("Repomix result " + $Config.UserId)',
+
+      '',
+
+      '$Success = [ordered]@{',
+      '    status = "success"',
+      '    projectPath = $ProjectPath',
+      '    bytes = $FileInfo.Length',
+      '    include = $IncludePattern',
+      '    compress = $UseCompress',
+      '    startedAt = $Started.ToString("o")',
+      '    endedAt = (Get-Date).ToString("o")',
+      '} | ConvertTo-Json -Depth 10',
+
+      '',
+
+      'Put-RemoteText `',
+      '    -Path $StatusRemotePath `',
+      '    -Text $Success `',
+      '    -Message ("Repomix success " + $Config.UserId)',
+
+      '',
+
+      'Write-Host ""',
+      'Write-Host "============================================"',
+      'Write-Host " REPOMIX PROJECT ANALYSIS SUCCESS"',
+      'Write-Host "============================================"',
+      'Write-Host ""',
+      'Write-Host ("Project: " + $ProjectPath)',
+      'Write-Host ("Bytes  : " + $FileInfo.Length)',
+      'Write-Host ("Remote : " + $ResultRemotePath)',
+      'Write-Host ""'
+    ];
+
+
+    return lines.join(
+      '\r\n'
+    );
+  }
+
+
+  // =========================================================
+  // START ANALYSIS
+  // =========================================================
+
+  async function startAnalysis() {
+
+    try {
+
+      const path =
+        $('gptAnalysisProjectPath')
+          .value
+          .trim();
+
+
+      const include =
+        $('gptAnalysisInclude')
+          .value
+          .trim();
+
+
+      const compress =
+        $('gptAnalysisCompress')
+          .checked;
+
+
+      if (!path) {
+
+        throw new Error(
+          '프로젝트 경로를 입력하세요.'
+        );
+      }
+
+
+      localStorage.setItem(
+        'analysisProjectPath',
+        path
+      );
+
+
+      localStorage.setItem(
+        'analysisInclude',
+        include
+      );
+
+
+      localStorage.setItem(
+        'analysisCompress',
+        compress
+          ? '1'
+          : '0'
+      );
+
+
+      const script =
+        makeAnalysisScript(
+          path,
+          include,
+          compress
+        );
+
+
+      setStatus(
+        '분석 요청을 PC로 전송 중...\n\n' +
+        path
+      );
+
+
+      await sendToGitHub(
+        script
+      );
+
+
+      setStatus(
+        '✅ 분석 요청 전송 완료\n\n' +
+        'PC에서 Repomix 실행 대기 중...'
+      );
+
+
+      startPolling();
+
+    } catch (error) {
+
+      setStatus(
+        '❌ 분석 요청 실패\n\n' +
+        error.message
+      );
+    }
+  }
+
+
+  // =========================================================
+  // STATUS
+  // =========================================================
+
+  function setStatus(text) {
+
+    $('gptAnalysisStatus')
+      .textContent =
+        text;
+  }
+
+
+  async function refreshStatus(
+    manual
+  ) {
+
+    try {
+
+      const s =
+        settings();
+
+
+      const base =
+        'users/' +
+        s.userId +
+        '/analysis/';
+
+
+      const file =
+        await readGithubFile(
+          s,
+          base +
+          'status.json'
+        );
+
+
+      if (!file) {
+
+        if (manual) {
+
+          setStatus(
+            '아직 프로젝트 분석 결과가 없습니다.'
+          );
+        }
+
+
+        return;
+      }
+
+
+      const text =
+        decode64(
+          file.content
+        );
+
+
+      if (
+        text === lastStatusText &&
+        !manual
+      ) {
+
+        return;
+      }
+
+
+      lastStatusText =
+        text;
+
+
+      const state =
+        JSON.parse(
+          text
+        );
+
+
+      if (
+        state.status ===
+        'running'
+      ) {
+
+        setStatus(
+          '⏳ Repomix 분석 중\n\n' +
+          state.projectPath
+        );
+
+
+        return;
+      }
+
+
+      if (
+        state.status ===
+        'too_large'
+      ) {
+
+        setStatus(
+          '⚠️ 결과 파일이 너무 큽니다.\n\n' +
+          '크기: ' +
+          Math.round(
+            state.bytes /
+            1024
+          ).toLocaleString() +
+          ' KB\n\n' +
+          'Include 패턴을 지정하거나 Compress를 사용하세요.'
+        );
+
+
+        return;
+      }
+
+
+      if (
+        state.status ===
+        'success'
+      ) {
+
+        setStatus(
+          '✅ Repomix 분석 완료\n\n' +
+          state.projectPath +
+          '\n\n' +
+          '크기: ' +
+          Math.round(
+            state.bytes /
+            1024
+          ).toLocaleString() +
+          ' KB'
+        );
+
+
+        await loadResult(
+          s,
+          base
+        );
+      }
+
+    } catch (error) {
+
+      if (manual) {
+
+        setStatus(
+          '분석 상태 확인 실패\n\n' +
+          error.message
+        );
+      }
+    }
+  }
+
+
+  async function loadResult(
+    s,
+    base
+  ) {
+
+    const file =
+      await readGithubFile(
+        s,
+        base +
+        'latest.json'
+      );
+
+
+    if (!file) {
+
+      throw new Error(
+        'latest.json 결과 파일 없음'
+      );
+    }
+
+
+    const text =
+      decode64(
+        file.content
+      );
+
+
+    $('gptAnalysisResult')
+      .value =
+        text;
+
+
+    $('gptAnalysisMeta')
+      .textContent =
+        text.length
+          .toLocaleString() +
+        '자';
+
+
+    $('gptAnalysisAccordion')
+      .classList
+      .add(
+        'open'
+      );
+  }
+
+
+  function startPolling() {
+
+    if (pollTimer) {
+
+      clearInterval(
+        pollTimer
+      );
+    }
+
+
+    refreshStatus(
+      true
+    );
+
+
+    pollTimer =
+      setInterval(
+        function () {
+
+          const mode =
+            $('gptAnalysisMode');
+
+
+          if (
+            mode &&
+            mode.classList.contains(
+              'analysis-visible'
+            )
+          ) {
+
+            refreshStatus(
+              false
+            );
+          }
+
+        },
+        5000
+      );
+  }
+
+
+  // =========================================================
+  // COPY
+  // =========================================================
+
+  async function copyJson() {
+
+    const text =
+      $('gptAnalysisResult')
+        .value;
+
+
+    if (!text) {
+
+      alert(
+        '분석 결과가 없습니다.'
+      );
+
+      return;
+    }
+
+
+    await navigator
+      .clipboard
+      .writeText(
+        text
+      );
+
+
+    setStatus(
+      'Repomix JSON을 클립보드에 복사했습니다.'
+    );
+  }
+
+
+  async function copyForGpt() {
+
+    const text =
+      $('gptAnalysisResult')
+        .value;
+
+
+    if (!text) {
+
+      alert(
+        '분석 결과가 없습니다.'
+      );
+
+      return;
+    }
+
+
+    const prompt =
+      '아래 내용은 Repomix로 추출한 현재 프로젝트의 실제 코드입니다.\n\n' +
+      '이 내용을 기준으로 코드를 분석해주세요.\n' +
+      '수정할 때는 파일 전체를 추측해서 다시 작성하지 말고,\n' +
+      '실제 기존 코드 블록을 기준으로 안전한 PowerShell 부분 패치를 작성해주세요.\n' +
+      '수정 전 백업, 대상 블록 검증, 수정 후 빌드 검사, 실패 시 복구까지 포함해주세요.\n\n' +
+      '===== REPOMIX START =====\n\n' +
+      text +
+      '\n\n===== REPOMIX END =====';
+
+
+    await navigator
+      .clipboard
+      .writeText(
+        prompt
+      );
+
+
+    setStatus(
+      'GPT용 Repomix 프롬프트를 복사했습니다.'
+    );
+  }
+
+
+  // =========================================================
+  // MODE
+  // =========================================================
+
+  function showAnalysisMode() {
+
+    const send =
+      $('sendMode');
+
+
+    const receive =
+      $('receiveMode');
+
+
+    const text =
+      $('gptTextMode');
+
+
+    const analysis =
+      $('gptAnalysisMode');
+
+
+    if (send) {
+
+      send.classList.add(
+        'hidden'
+      );
+    }
+
+
+    if (receive) {
+
+      receive.classList.add(
+        'hidden'
+      );
+    }
+
+
+    if (text) {
+
+      text.classList.remove(
+        'gpt-text-visible'
+      );
+    }
+
+
+    analysis.classList.add(
+      'analysis-visible'
+    );
+
+
+    document
+      .querySelectorAll(
+        '.modebar button'
+      )
+      .forEach(
+        function (button) {
+
+          button.className =
+            button.id ===
+            'gptAnalysisModeButton'
+              ? 'active'
+              : 'inactive';
+        }
+      );
+
+
+    if ($('subtitle')) {
+
+      $('subtitle').textContent =
+        'PC 프로젝트를 Repomix로 분석해 GPT에 전달합니다.';
+    }
+
+
+    startPolling();
+  }
+
+
+  const oldSetMode =
+    window.setMode;
+
+
+  if (
+    typeof oldSetMode ===
+    'function'
+  ) {
+
+    window.setMode =
+      function (mode) {
+
+        const analysis =
+          $('gptAnalysisMode');
+
+
+        if (analysis) {
+
+          analysis.classList.remove(
+            'analysis-visible'
+          );
+        }
+
+
+        return oldSetMode(
+          mode
+        );
+      };
+  }
+
+
+  // =========================================================
+  // CREATE TAB
+  // =========================================================
+
+  const modebar =
+    document.querySelector(
+      '.modebar'
+    );
+
+
+  if (!modebar) {
+    return;
+  }
+
+
+  const tab =
+    document.createElement(
+      'button'
+    );
+
+
+  tab.id =
+    'gptAnalysisModeButton';
+
+
+  tab.className =
+    'inactive';
+
+
+  tab.textContent =
+    '프로젝트 분석';
+
+
+  tab.addEventListener(
+    'click',
+    showAnalysisMode
+  );
+
+
+  modebar.appendChild(
+    tab
+  );
+
+
+  modebar.style.gridTemplateColumns =
+    'repeat(4,minmax(0,1fr))';
+
+
+  // =========================================================
+  // CREATE VIEW
+  // =========================================================
+
+  const analysis =
+    document.createElement(
+      'div'
+    );
+
+
+  analysis.id =
+    'gptAnalysisMode';
+
+
+  analysis.innerHTML = `
+
+    <div class="card analysis-card">
+
+      <div class="analysis-title">
+        프로젝트 분석
+      </div>
+
+      <div class="analysis-description">
+        PC 프로젝트를 Repomix JSON으로 패키징합니다.
+        GPT에 전달하면 실제 현재 코드 기준으로
+        부분 수정 패치를 만들 수 있습니다.
+      </div>
+
+
+      <label>
+        PC 프로젝트 경로
+      </label>
+
+      <input
+        id="gptAnalysisProjectPath"
+        placeholder="C:\\dev\\workspace\\cad-drawing-viewer"
+      >
+
+
+      <label>
+        Include 패턴
+      </label>
+
+      <input
+        id="gptAnalysisInclude"
+        placeholder="예: src/pages/GeometryShapeViewerPage.tsx"
+      >
+
+
+      <label class="analysis-option">
+
+        <input
+          id="gptAnalysisCompress"
+          type="checkbox"
+        >
+
+        <span>
+          Repomix Compress 사용
+          <br>
+          <span style="color:#828a98">
+            구조 파악용. 실제 코드 수정 시에는 보통 끄는 것을 권장합니다.
+          </span>
+        </span>
+
+      </label>
+
+
+      <button
+        id="gptAnalysisStart"
+        class="green"
+        type="button"
+      >
+        Repomix 분석 시작
+      </button>
+
+    </div>
+
+
+    <div
+      id="gptAnalysisAccordion"
+      class="analysis-accordion"
+    >
+
+      <button
+        id="gptAnalysisAccordionHeader"
+        class="analysis-accordion-header"
+        type="button"
+      >
+
+        <span>
+          📦 Repomix 분석 결과
+        </span>
+
+        <span>
+
+          <span
+            id="gptAnalysisMeta"
+            class="analysis-meta"
+          >
+            없음
+          </span>
+
+          <span class="analysis-arrow">
+            ▼
+          </span>
+
+        </span>
+
+      </button>
+
+
+      <div class="analysis-accordion-body">
+
+        <textarea
+          id="gptAnalysisResult"
+          readonly
+        ></textarea>
+
+
+        <button
+          id="gptAnalysisCopyGpt"
+          class="green"
+          type="button"
+        >
+          GPT 분석용으로 복사
+        </button>
+
+
+        <button
+          id="gptAnalysisCopyJson"
+          class="gray"
+          type="button"
+        >
+          JSON만 복사
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <div class="card">
+
+      <div
+        id="gptAnalysisStatus"
+        class="analysis-status"
+      >
+        프로젝트 분석 준비됨
+      </div>
+
+
+      <button
+        id="gptAnalysisRefresh"
+        class="blue"
+        type="button"
+      >
+        분석 상태 새로고침
+      </button>
+
+    </div>
+
+  `;
+
+
+  const textMode =
+    $('gptTextMode');
+
+
+  if (textMode) {
+
+    textMode.insertAdjacentElement(
+      'afterend',
+      analysis
+    );
+
+  } else {
+
+    modebar.insertAdjacentElement(
+      'afterend',
+      analysis
+    );
+  }
+
+
+  // =========================================================
+  // LOAD SAVED
+  // =========================================================
+
+  $('gptAnalysisProjectPath').value =
+    localStorage.getItem(
+      'analysisProjectPath'
+    ) || '';
+
+
+  $('gptAnalysisInclude').value =
+    localStorage.getItem(
+      'analysisInclude'
+    ) || '';
+
+
+  $('gptAnalysisCompress').checked =
+    localStorage.getItem(
+      'analysisCompress'
+    ) === '1';
+
+
+  // =========================================================
+  // EVENTS
+  // =========================================================
+
+  $('gptAnalysisStart')
+    .addEventListener(
+      'click',
+      startAnalysis
+    );
+
+
+  $('gptAnalysisRefresh')
+    .addEventListener(
+      'click',
+      function () {
+
+        refreshStatus(
+          true
+        );
+      }
+    );
+
+
+  $('gptAnalysisCopyJson')
+    .addEventListener(
+      'click',
+      copyJson
+    );
+
+
+  $('gptAnalysisCopyGpt')
+    .addEventListener(
+      'click',
+      copyForGpt
+    );
+
+
+  $('gptAnalysisAccordionHeader')
+    .addEventListener(
+      'click',
+      function () {
+
+        $('gptAnalysisAccordion')
+          .classList
+          .toggle(
+            'open'
+          );
+      }
+    );
+
+
+  const requested =
+    new URLSearchParams(
+      location.search
+    ).get(
+      'mode'
+    );
+
+
+  if (
+    requested ===
+    'analysis'
+  ) {
+
+    showAnalysisMode();
+  }
+
+})();
+
+</script>
+
+<!-- GPT_PROJECT_ANALYSIS_END -->
 </body>
 </html>
