@@ -2416,5 +2416,1577 @@ PC 실행 결과
 </script>
 
 <!-- GPT_MULTIUSER_END -->
+<!-- GPT_TEXT_BRIDGE_START -->
+
+<style>
+
+#gptTextMode {
+  display: none;
+}
+
+#gptTextMode.gpt-text-visible {
+  display: block;
+}
+
+.gpt-text-role {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.gpt-text-role button {
+  margin-top: 0;
+}
+
+.gpt-text-role .selected {
+  background: #7c3aed;
+}
+
+.gpt-text-role .unselected {
+  background: #374151;
+}
+
+.gpt-text-box {
+  min-height: 220px;
+}
+
+.gpt-text-receive-box {
+  min-height: 260px;
+}
+
+.gpt-text-info {
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 9px;
+  background: #111827;
+  color: #9ca3af;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.gpt-text-status {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 9px;
+  background: #111827;
+  white-space: pre-wrap;
+}
+
+@media(max-width:600px) {
+
+  .gpt-text-role {
+    grid-template-columns: 1fr;
+  }
+}
+
+</style>
+
+
+<script>
+
+(function () {
+
+  const TEXT_POLL_MS =
+    5000;
+
+  let textMonitorTimer =
+    null;
+
+  let lastIncomingSha =
+    '';
+
+
+  // =========================================================
+  // HELPERS
+  // =========================================================
+
+  function byId(id) {
+
+    return document.getElementById(
+      id
+    );
+  }
+
+
+  function cleanUserId(value) {
+
+    return String(
+      value || ''
+    )
+      .trim()
+      .toLowerCase()
+      .replace(
+        /[^a-z0-9._-]/g,
+        '-'
+      )
+      .replace(
+        /-+/g,
+        '-'
+      )
+      .replace(
+        /^[-.]+|[-.]+$/g,
+        ''
+      );
+  }
+
+
+  function defaultRole() {
+
+    const mobile =
+      /Android|iPhone|iPad|Mobile/i
+        .test(
+          navigator.userAgent
+        );
+
+    return mobile
+      ? 'phone'
+      : 'pc';
+  }
+
+
+  function getRole() {
+
+    return (
+      localStorage.getItem(
+        'bridgeDeviceRole'
+      ) ||
+      defaultRole()
+    );
+  }
+
+
+  function setRole(role) {
+
+    localStorage.setItem(
+      'bridgeDeviceRole',
+      role
+    );
+
+    updateRoleUi();
+
+    loadIncomingText(
+      true
+    );
+  }
+
+
+  function getUserId() {
+
+    const input =
+      byId(
+        'bridgeUserId'
+      );
+
+    let value =
+      input
+        ? input.value
+        : localStorage.getItem(
+            'bridgeUserId'
+          );
+
+
+    value =
+      cleanUserId(
+        value
+      );
+
+
+    if (!value) {
+
+      value =
+        'user1';
+    }
+
+
+    localStorage.setItem(
+      'bridgeUserId',
+      value
+    );
+
+
+    return value;
+  }
+
+
+  function getTextSettings() {
+
+    const owner =
+      byId('owner')
+        ? byId('owner').value.trim()
+        : localStorage.getItem(
+            'githubOwner'
+          ) || 'joo-ec';
+
+
+    const repo =
+      byId('repo')
+        ? byId('repo').value.trim()
+        : localStorage.getItem(
+            'githubRepo'
+          ) || 'gpt-to-pc-data';
+
+
+    const branch =
+      byId('branch')
+        ? byId('branch').value.trim()
+        : localStorage.getItem(
+            'githubBranch'
+          ) || 'main';
+
+
+    const token =
+      byId('token')
+        ? byId('token').value.trim()
+        : localStorage.getItem(
+            'githubToken'
+          ) || '';
+
+
+    if (!owner) {
+
+      throw new Error(
+        'GitHub 사용자명이 없습니다.'
+      );
+    }
+
+
+    if (!repo) {
+
+      throw new Error(
+        'Repository가 없습니다.'
+      );
+    }
+
+
+    if (!branch) {
+
+      throw new Error(
+        'Branch가 없습니다.'
+      );
+    }
+
+
+    if (!token) {
+
+      throw new Error(
+        'GitHub PAT가 없습니다.'
+      );
+    }
+
+
+    return {
+      owner,
+      repo,
+      branch,
+      token,
+      userId:
+        getUserId(),
+      role:
+        getRole()
+    };
+  }
+
+
+  function textHeaders(token) {
+
+    return {
+
+      Accept:
+        'application/vnd.github+json',
+
+      Authorization:
+        'Bearer ' + token,
+
+      'X-GitHub-Api-Version':
+        '2022-11-28'
+    };
+  }
+
+
+  function textApiUrl(
+    settings,
+    path
+  ) {
+
+    return (
+      'https://api.github.com/repos/' +
+      encodeURIComponent(
+        settings.owner
+      ) +
+      '/' +
+      encodeURIComponent(
+        settings.repo
+      ) +
+      '/contents/' +
+      path
+        .split('/')
+        .map(
+          encodeURIComponent
+        )
+        .join('/')
+    );
+  }
+
+
+  function outgoingPath(settings) {
+
+    if (
+      settings.role ===
+      'phone'
+    ) {
+
+      return (
+        'users/' +
+        settings.userId +
+        '/text/phone-to-pc.txt'
+      );
+    }
+
+
+    return (
+      'users/' +
+      settings.userId +
+      '/text/pc-to-phone.txt'
+    );
+  }
+
+
+  function incomingPath(settings) {
+
+    if (
+      settings.role ===
+      'phone'
+    ) {
+
+      return (
+        'users/' +
+        settings.userId +
+        '/text/pc-to-phone.txt'
+      );
+    }
+
+
+    return (
+      'users/' +
+      settings.userId +
+      '/text/phone-to-pc.txt'
+    );
+  }
+
+
+  function textUtf8ToBase64(text) {
+
+    const bytes =
+      new TextEncoder()
+        .encode(text);
+
+
+    let binary =
+      '';
+
+
+    const chunk =
+      0x8000;
+
+
+    for (
+      let i = 0;
+      i < bytes.length;
+      i += chunk
+    ) {
+
+      binary +=
+        String.fromCharCode.apply(
+          null,
+          bytes.subarray(
+            i,
+            i + chunk
+          )
+        );
+    }
+
+
+    return btoa(binary);
+  }
+
+
+  function textBase64ToUtf8(value) {
+
+    const binary =
+      atob(
+        String(value || '')
+          .replace(/\s/g, '')
+      );
+
+
+    const bytes =
+      new Uint8Array(
+        binary.length
+      );
+
+
+    for (
+      let i = 0;
+      i < binary.length;
+      i++
+    ) {
+
+      bytes[i] =
+        binary.charCodeAt(i);
+    }
+
+
+    return new TextDecoder(
+      'utf-8'
+    ).decode(bytes);
+  }
+
+
+  function setTextStatus(text) {
+
+    const target =
+      byId(
+        'gptTextStatus'
+      );
+
+
+    if (target) {
+
+      target.textContent =
+        text;
+    }
+  }
+
+
+  function waitText(ms) {
+
+    return new Promise(
+      resolve =>
+        setTimeout(
+          resolve,
+          ms
+        )
+    );
+  }
+
+
+  // =========================================================
+  // GITHUB FILE
+  // =========================================================
+
+  async function getGitHubTextFile(
+    settings,
+    path
+  ) {
+
+    const response =
+      await fetch(
+        textApiUrl(
+          settings,
+          path
+        ) +
+        '?ref=' +
+        encodeURIComponent(
+          settings.branch
+        ) +
+        '&_=' +
+        Date.now(),
+        {
+          cache:
+            'no-store',
+
+          headers:
+            textHeaders(
+              settings.token
+            )
+        }
+      );
+
+
+    if (
+      response.status === 404
+    ) {
+
+      return null;
+    }
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        'GitHub 조회 실패: ' +
+        response.status
+      );
+    }
+
+
+    return await response.json();
+  }
+
+
+  async function putGitHubTextFile(
+    settings,
+    path,
+    text
+  ) {
+
+    const url =
+      textApiUrl(
+        settings,
+        path
+      );
+
+
+    let lastError =
+      null;
+
+
+    for (
+      let attempt = 1;
+      attempt <= 5;
+      attempt++
+    ) {
+
+      try {
+
+        let sha =
+          null;
+
+
+        const existing =
+          await getGitHubTextFile(
+            settings,
+            path
+          );
+
+
+        if (existing) {
+
+          sha =
+            existing.sha;
+        }
+
+
+        const body = {
+
+          message:
+            'GPT Text Bridge ' +
+            settings.userId +
+            ' ' +
+            new Date()
+              .toISOString(),
+
+          content:
+            textUtf8ToBase64(
+              text
+            ),
+
+          branch:
+            settings.branch
+        };
+
+
+        if (sha) {
+
+          body.sha =
+            sha;
+        }
+
+
+        const response =
+          await fetch(
+            url,
+            {
+              method:
+                'PUT',
+
+              cache:
+                'no-store',
+
+              headers: {
+
+                ...textHeaders(
+                  settings.token
+                ),
+
+                'Content-Type':
+                  'application/json'
+              },
+
+              body:
+                JSON.stringify(
+                  body
+                )
+            }
+          );
+
+
+        if (response.ok) {
+
+          return await response.json();
+        }
+
+
+        let detail =
+          response.status +
+          ' ' +
+          response.statusText;
+
+
+        try {
+
+          const error =
+            await response.json();
+
+
+          if (error.message) {
+
+            detail =
+              error.message;
+          }
+
+        } catch {
+        }
+
+
+        const lower =
+          detail.toLowerCase();
+
+
+        const retry =
+          response.status === 409 ||
+          response.status === 422 ||
+          lower.includes(
+            'does not match'
+          );
+
+
+        if (
+          retry &&
+          attempt < 5
+        ) {
+
+          await waitText(
+            400 * attempt
+          );
+
+          continue;
+        }
+
+
+        throw new Error(
+          detail
+        );
+
+      } catch (error) {
+
+        lastError =
+          error;
+
+
+        if (attempt >= 5) {
+
+          throw error;
+        }
+
+
+        await waitText(
+          500 * attempt
+        );
+      }
+    }
+
+
+    throw (
+      lastError ||
+      new Error(
+        '텍스트 전송 실패'
+      )
+    );
+  }
+
+
+  // =========================================================
+  // SEND
+  // =========================================================
+
+  async function sendTextCurrent() {
+
+    try {
+
+      const settings =
+        getTextSettings();
+
+
+      const textarea =
+        byId(
+          'gptTextSend'
+        );
+
+
+      const text =
+        textarea.value;
+
+
+      if (!text) {
+
+        throw new Error(
+          '전송할 텍스트가 없습니다.'
+        );
+      }
+
+
+      const path =
+        outgoingPath(
+          settings
+        );
+
+
+      setTextStatus(
+        '텍스트 전송 중...\n' +
+        path +
+        '\n' +
+        text.length.toLocaleString() +
+        '자'
+      );
+
+
+      await putGitHubTextFile(
+        settings,
+        path,
+        text
+      );
+
+
+      setTextStatus(
+        '✅ 텍스트 전송 완료\n\n' +
+        (
+          settings.role ===
+          'phone'
+            ? '휴대폰 → PC'
+            : 'PC → 휴대폰'
+        ) +
+        '\n' +
+        text.length.toLocaleString() +
+        '자'
+      );
+
+    } catch (error) {
+
+      setTextStatus(
+        '❌ 텍스트 전송 실패\n\n' +
+        error.message
+      );
+    }
+  }
+
+
+  async function clipboardToText() {
+
+    try {
+
+      if (
+        !navigator.clipboard ||
+        !navigator.clipboard.readText
+      ) {
+
+        throw new Error(
+          '이 브라우저에서는 클립보드 읽기를 지원하지 않습니다.'
+        );
+      }
+
+
+      const text =
+        await navigator
+          .clipboard
+          .readText();
+
+
+      if (!text) {
+
+        throw new Error(
+          '클립보드가 비어 있습니다.'
+        );
+      }
+
+
+      byId(
+        'gptTextSend'
+      ).value =
+        text;
+
+
+      setTextStatus(
+        '클립보드 읽기 완료\n' +
+        text.length.toLocaleString() +
+        '자'
+      );
+
+    } catch (error) {
+
+      setTextStatus(
+        '클립보드 읽기 실패\n\n' +
+        error.message
+      );
+    }
+  }
+
+
+  async function clipboardAndSendText() {
+
+    await clipboardToText();
+
+
+    if (
+      byId('gptTextSend')
+        .value
+    ) {
+
+      await sendTextCurrent();
+    }
+  }
+
+
+  // =========================================================
+  // RECEIVE
+  // =========================================================
+
+  async function loadIncomingText(
+    manual
+  ) {
+
+    try {
+
+      const settings =
+        getTextSettings();
+
+
+      const path =
+        incomingPath(
+          settings
+        );
+
+
+      if (manual) {
+
+        setTextStatus(
+          '상대방 텍스트 확인 중...\n' +
+          path
+        );
+      }
+
+
+      const file =
+        await getGitHubTextFile(
+          settings,
+          path
+        );
+
+
+      if (!file) {
+
+        if (manual) {
+
+          setTextStatus(
+            '아직 상대방이 보낸 텍스트가 없습니다.'
+          );
+        }
+
+
+        return;
+      }
+
+
+      const changed =
+        file.sha !==
+        lastIncomingSha;
+
+
+      if (
+        changed ||
+        manual
+      ) {
+
+        const text =
+          textBase64ToUtf8(
+            file.content
+          );
+
+
+        byId(
+          'gptTextReceive'
+        ).value =
+          text;
+
+
+        lastIncomingSha =
+          file.sha;
+
+
+        setTextStatus(
+          (
+            changed
+              ? '📩 새 텍스트 수신'
+              : '✅ 최신 텍스트 확인'
+          ) +
+          '\n\n' +
+          (
+            settings.role ===
+            'phone'
+              ? 'PC → 휴대폰'
+              : '휴대폰 → PC'
+          ) +
+          '\n' +
+          text.length.toLocaleString() +
+          '자\n' +
+          new Date()
+            .toLocaleTimeString()
+        );
+      }
+
+    } catch (error) {
+
+      if (manual) {
+
+        setTextStatus(
+          '텍스트 수신 실패\n\n' +
+          error.message
+        );
+      }
+    }
+  }
+
+
+  async function copyIncomingText() {
+
+    const text =
+      byId(
+        'gptTextReceive'
+      ).value;
+
+
+    if (!text) {
+
+      alert(
+        '복사할 수신 텍스트가 없습니다.'
+      );
+
+      return;
+    }
+
+
+    try {
+
+      await navigator
+        .clipboard
+        .writeText(text);
+
+
+      setTextStatus(
+        '수신 텍스트를 클립보드에 복사했습니다.'
+      );
+
+    } catch {
+
+      const box =
+        byId(
+          'gptTextReceive'
+        );
+
+
+      box.focus();
+      box.select();
+
+
+      setTextStatus(
+        '자동 복사가 제한되었습니다.\nCtrl+C 또는 복사를 사용하세요.'
+      );
+    }
+  }
+
+
+  // =========================================================
+  // UI
+  // =========================================================
+
+  function updateRoleUi() {
+
+    const role =
+      getRole();
+
+
+    const phone =
+      byId(
+        'gptTextRolePhone'
+      );
+
+
+    const pc =
+      byId(
+        'gptTextRolePc'
+      );
+
+
+    if (!phone || !pc) {
+      return;
+    }
+
+
+    phone.className =
+      role === 'phone'
+        ? 'selected'
+        : 'unselected';
+
+
+    pc.className =
+      role === 'pc'
+        ? 'selected'
+        : 'unselected';
+
+
+    const settings =
+      {
+        role,
+        userId:
+          getUserId()
+      };
+
+
+    const info =
+      byId(
+        'gptTextPathInfo'
+      );
+
+
+    if (info) {
+
+      info.textContent =
+        '보내는 경로\n' +
+        outgoingPath(
+          settings
+        ) +
+        '\n\n받는 경로\n' +
+        incomingPath(
+          settings
+        );
+    }
+  }
+
+
+  function showTextMode() {
+
+    const sendMode =
+      byId(
+        'sendMode'
+      );
+
+    const receiveMode =
+      byId(
+        'receiveMode'
+      );
+
+    const textMode =
+      byId(
+        'gptTextMode'
+      );
+
+
+    if (sendMode) {
+
+      sendMode.classList.add(
+        'hidden'
+      );
+    }
+
+
+    if (receiveMode) {
+
+      receiveMode.classList.add(
+        'hidden'
+      );
+    }
+
+
+    textMode.classList.add(
+      'gpt-text-visible'
+    );
+
+
+    const sendButton =
+      byId(
+        'sendModeButton'
+      );
+
+    const receiveButton =
+      byId(
+        'receiveModeButton'
+      );
+
+    const textButton =
+      byId(
+        'gptTextModeButton'
+      );
+
+
+    if (sendButton) {
+
+      sendButton.className =
+        'inactive';
+    }
+
+
+    if (receiveButton) {
+
+      receiveButton.className =
+        'inactive';
+    }
+
+
+    textButton.className =
+      'active';
+
+
+    const subtitle =
+      byId(
+        'subtitle'
+      );
+
+
+    if (subtitle) {
+
+      subtitle.textContent =
+        '휴대폰과 PC 사이에서 클립보드 텍스트를 양방향으로 전달합니다.';
+    }
+
+
+    const url =
+      new URL(
+        location.href
+      );
+
+
+    url.searchParams.set(
+      'mode',
+      'text'
+    );
+
+
+    history.replaceState(
+      {},
+      '',
+      url
+    );
+
+
+    updateRoleUi();
+
+    loadIncomingText(
+      true
+    );
+
+
+    if (textMonitorTimer) {
+
+      clearInterval(
+        textMonitorTimer
+      );
+    }
+
+
+    textMonitorTimer =
+      setInterval(
+        () => {
+
+          if (
+            byId('gptTextMode')
+              .classList
+              .contains(
+                'gpt-text-visible'
+              )
+          ) {
+
+            loadIncomingText(
+              false
+            );
+          }
+
+        },
+        TEXT_POLL_MS
+      );
+  }
+
+
+  // =========================================================
+  // 기존 탭 동작과 연결
+  // =========================================================
+
+  const originalSetMode =
+    window.setMode;
+
+
+  if (
+    typeof originalSetMode ===
+    'function'
+  ) {
+
+    window.setMode =
+      function (mode) {
+
+        const textMode =
+          byId(
+            'gptTextMode'
+          );
+
+
+        if (textMode) {
+
+          textMode.classList.remove(
+            'gpt-text-visible'
+          );
+        }
+
+
+        const textButton =
+          byId(
+            'gptTextModeButton'
+          );
+
+
+        if (textButton) {
+
+          textButton.className =
+            'inactive';
+        }
+
+
+        return originalSetMode(
+          mode
+        );
+      };
+  }
+
+
+  // =========================================================
+  // 탭 버튼 추가
+  // =========================================================
+
+  const modeBar =
+    document.querySelector(
+      '.modebar'
+    );
+
+
+  if (!modeBar) {
+    return;
+  }
+
+
+  const textButton =
+    document.createElement(
+      'button'
+    );
+
+
+  textButton.id =
+    'gptTextModeButton';
+
+  textButton.className =
+    'inactive';
+
+  textButton.textContent =
+    '텍스트 교환';
+
+  textButton.addEventListener(
+    'click',
+    showTextMode
+  );
+
+
+  modeBar.appendChild(
+    textButton
+  );
+
+
+  // =========================================================
+  // Text Mode 화면 생성
+  // =========================================================
+
+  const textMode =
+    document.createElement(
+      'div'
+    );
+
+
+  textMode.id =
+    'gptTextMode';
+
+
+  textMode.innerHTML = `
+
+    <div class="card">
+
+      <label>
+        이 기기의 역할
+      </label>
+
+      <div class="gpt-text-role">
+
+        <button
+          id="gptTextRolePhone"
+          type="button"
+        >
+          📱 휴대폰
+        </button>
+
+        <button
+          id="gptTextRolePc"
+          type="button"
+        >
+          💻 PC
+        </button>
+
+      </div>
+
+      <div
+        id="gptTextPathInfo"
+        class="gpt-text-info"
+      ></div>
+
+    </div>
+
+
+    <div class="card">
+
+      <label>
+        상대방에게 보낼 텍스트
+      </label>
+
+      <textarea
+        id="gptTextSend"
+        class="gpt-text-box"
+        placeholder="클립보드를 읽거나 직접 텍스트를 입력하세요."
+      ></textarea>
+
+
+      <button
+        id="gptTextClipboardSend"
+        class="green"
+        type="button"
+      >
+        클립보드 읽고 바로 전송
+      </button>
+
+
+      <button
+        id="gptTextClipboardRead"
+        class="blue"
+        type="button"
+      >
+        클립보드만 가져오기
+      </button>
+
+
+      <button
+        id="gptTextCurrentSend"
+        class="gray"
+        type="button"
+      >
+        현재 텍스트 전송
+      </button>
+
+
+      <button
+        id="gptTextClear"
+        class="red"
+        type="button"
+      >
+        입력 내용 지우기
+      </button>
+
+    </div>
+
+
+    <div class="card">
+
+      <label>
+        상대방에게서 받은 최신 텍스트
+      </label>
+
+      <textarea
+        id="gptTextReceive"
+        class="gpt-text-receive-box"
+        readonly
+      ></textarea>
+
+
+      <button
+        id="gptTextRefresh"
+        class="blue"
+        type="button"
+      >
+        지금 새로고침
+      </button>
+
+
+      <button
+        id="gptTextCopy"
+        class="green"
+        type="button"
+      >
+        받은 텍스트 클립보드 복사
+      </button>
+
+    </div>
+
+
+    <div class="card">
+
+      <div
+        id="gptTextStatus"
+        class="gpt-text-status"
+      >
+        텍스트 교환 준비됨
+      </div>
+
+    </div>
+  `;
+
+
+  const receiveMode =
+    byId(
+      'receiveMode'
+    );
+
+
+  if (receiveMode) {
+
+    receiveMode.insertAdjacentElement(
+      'afterend',
+      textMode
+    );
+
+  } else {
+
+    modeBar.insertAdjacentElement(
+      'afterend',
+      textMode
+    );
+  }
+
+
+  // =========================================================
+  // 이벤트
+  // =========================================================
+
+  byId(
+    'gptTextRolePhone'
+  ).addEventListener(
+    'click',
+    () =>
+      setRole(
+        'phone'
+      )
+  );
+
+
+  byId(
+    'gptTextRolePc'
+  ).addEventListener(
+    'click',
+    () =>
+      setRole(
+        'pc'
+      )
+  );
+
+
+  byId(
+    'gptTextClipboardRead'
+  ).addEventListener(
+    'click',
+    clipboardToText
+  );
+
+
+  byId(
+    'gptTextClipboardSend'
+  ).addEventListener(
+    'click',
+    clipboardAndSendText
+  );
+
+
+  byId(
+    'gptTextCurrentSend'
+  ).addEventListener(
+    'click',
+    sendTextCurrent
+  );
+
+
+  byId(
+    'gptTextClear'
+  ).addEventListener(
+    'click',
+    () => {
+
+      byId(
+        'gptTextSend'
+      ).value =
+        '';
+
+      setTextStatus(
+        '입력 내용을 지웠습니다.'
+      );
+    }
+  );
+
+
+  byId(
+    'gptTextRefresh'
+  ).addEventListener(
+    'click',
+    () =>
+      loadIncomingText(
+        true
+      )
+  );
+
+
+  byId(
+    'gptTextCopy'
+  ).addEventListener(
+    'click',
+    copyIncomingText
+  );
+
+
+  updateRoleUi();
+
+
+  // URL이 ?mode=text 라면 바로 텍스트 탭
+  const requestedMode =
+    new URLSearchParams(
+      location.search
+    ).get(
+      'mode'
+    );
+
+
+  if (
+    requestedMode ===
+    'text'
+  ) {
+
+    showTextMode();
+  }
+
+})();
+
+</script>
+
+<!-- GPT_TEXT_BRIDGE_END -->
 </body>
 </html>
