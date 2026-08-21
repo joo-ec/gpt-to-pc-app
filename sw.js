@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gpt-to-pc-ui-20260821103117';
+const CACHE_NAME = 'gpt-to-pc-text-accordion-v2-20260821104139';
 
 const APP_SHELL = [
   './',

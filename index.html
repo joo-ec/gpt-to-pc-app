@@ -4838,5 +4838,820 @@ PC 실행 결과
 </script>
 
 <!-- GPT_TEXT_BRIDGE_END -->
+<!-- GPT_TEXT_ACCORDION_V2_START -->
+
+<style>
+
+/* ==========================================================
+   TEXT BRIDGE - BALANCED SIZE
+========================================================== */
+
+#gptTextMode {
+  font-size: 14px !important;
+}
+
+#gptTextMode .card {
+  padding: 14px !important;
+  margin-bottom: 10px !important;
+}
+
+#gptTextMode label {
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+}
+
+#gptTextMode button {
+  min-height: 41px !important;
+  padding: 9px 13px !important;
+  font-size: 13px !important;
+  border-radius: 10px !important;
+}
+
+#gptTextMode .gpt-text-role button {
+  min-height: 40px !important;
+  font-size: 13px !important;
+}
+
+#gptTextMode textarea {
+  min-height: 175px !important;
+  max-height: 46vh !important;
+  padding: 11px !important;
+  font-size: 13px !important;
+  line-height: 1.55 !important;
+}
+
+#gptTextMode .gpt-text-info {
+  padding: 9px 10px !important;
+  font-size: 11px !important;
+  line-height: 1.5 !important;
+}
+
+#gptTextMode .gpt-text-status {
+  padding: 10px 11px !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+
+
+/* ==========================================================
+   ACCORDION
+========================================================== */
+
+#gptTextMode .gpt-accordion-card {
+  padding: 0 !important;
+  overflow: hidden;
+
+  border:
+    1px solid
+    rgba(255,255,255,.09) !important;
+
+  border-radius:
+    14px !important;
+
+  background:
+    rgba(24,27,35,.82) !important;
+}
+
+
+.gpt-accordion-header {
+  width: 100% !important;
+  min-height: 50px !important;
+
+  margin: 0 !important;
+  padding: 10px 13px !important;
+
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 10px;
+
+  border: 0 !important;
+  border-radius: 0 !important;
+
+  background:
+    rgba(255,255,255,.035) !important;
+
+  color:
+    #f0f2f5 !important;
+
+  box-shadow:
+    none !important;
+
+  text-align:
+    left !important;
+}
+
+
+.gpt-accordion-header:active {
+  transform: none !important;
+}
+
+
+.gpt-accordion-left {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+}
+
+
+.gpt-accordion-emoji {
+  flex: 0 0 auto;
+
+  font-size: 16px;
+}
+
+
+.gpt-accordion-title {
+  overflow: hidden;
+
+  font-size: 13px;
+  font-weight: 720;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+.gpt-accordion-right {
+  flex: 0 0 auto;
+
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+}
+
+
+.gpt-accordion-meta {
+  color:
+    #8d95a3;
+
+  font-size:
+    11px;
+
+  font-weight:
+    550;
+}
+
+
+.gpt-accordion-arrow {
+  color:
+    #8d95a3;
+
+  font-size:
+    12px;
+
+  transition:
+    transform .18s ease;
+}
+
+
+.gpt-accordion-card.gpt-open
+.gpt-accordion-arrow {
+  transform:
+    rotate(180deg);
+}
+
+
+.gpt-accordion-body {
+  display:
+    none;
+
+  padding:
+    12px 13px 13px;
+
+  border-top:
+    1px solid
+    rgba(255,255,255,.065);
+}
+
+
+.gpt-accordion-card.gpt-open
+.gpt-accordion-body {
+  display:
+    block;
+}
+
+
+/* textarea가 아코디언 내부일 때 */
+
+.gpt-accordion-body textarea {
+  margin-top: 0 !important;
+}
+
+
+/* ==========================================================
+   MOBILE
+========================================================== */
+
+@media(max-width:600px) {
+
+  #gptTextMode {
+    font-size: 14px !important;
+  }
+
+  #gptTextMode .card {
+    padding: 12px !important;
+  }
+
+  #gptTextMode button {
+    min-height: 40px !important;
+    padding: 9px 11px !important;
+    font-size: 13px !important;
+  }
+
+  #gptTextMode textarea {
+    min-height: 160px !important;
+  }
+
+  .gpt-accordion-header {
+    min-height: 48px !important;
+    padding: 10px 11px !important;
+  }
+
+  .gpt-accordion-body {
+    padding: 11px !important;
+  }
+
+  .gpt-accordion-title {
+    font-size: 12px;
+  }
+
+}
+
+</style>
+
+
+<script>
+
+(function () {
+
+  'use strict';
+
+
+  function byId(id) {
+
+    return document.getElementById(
+      id
+    );
+  }
+
+
+  function setAccordionOpen(
+    card,
+    open
+  ) {
+
+    if (!card) {
+      return;
+    }
+
+
+    if (open) {
+
+      card.classList.add(
+        'gpt-open'
+      );
+
+    } else {
+
+      card.classList.remove(
+        'gpt-open'
+      );
+    }
+  }
+
+
+  function toggleAccordion(card) {
+
+    if (!card) {
+      return;
+    }
+
+
+    card.classList.toggle(
+      'gpt-open'
+    );
+  }
+
+
+  function createHeader(
+    emoji,
+    title,
+    metaId
+  ) {
+
+    const header =
+      document.createElement(
+        'button'
+      );
+
+
+    header.type =
+      'button';
+
+
+    header.className =
+      'gpt-accordion-header';
+
+
+    const left =
+      document.createElement(
+        'span'
+      );
+
+
+    left.className =
+      'gpt-accordion-left';
+
+
+    const emojiSpan =
+      document.createElement(
+        'span'
+      );
+
+
+    emojiSpan.className =
+      'gpt-accordion-emoji';
+
+
+    emojiSpan.textContent =
+      emoji;
+
+
+    const titleSpan =
+      document.createElement(
+        'span'
+      );
+
+
+    titleSpan.className =
+      'gpt-accordion-title';
+
+
+    titleSpan.textContent =
+      title;
+
+
+    left.appendChild(
+      emojiSpan
+    );
+
+
+    left.appendChild(
+      titleSpan
+    );
+
+
+    const right =
+      document.createElement(
+        'span'
+      );
+
+
+    right.className =
+      'gpt-accordion-right';
+
+
+    const meta =
+      document.createElement(
+        'span'
+      );
+
+
+    meta.id =
+      metaId;
+
+
+    meta.className =
+      'gpt-accordion-meta';
+
+
+    meta.textContent =
+      '0자';
+
+
+    const arrow =
+      document.createElement(
+        'span'
+      );
+
+
+    arrow.className =
+      'gpt-accordion-arrow';
+
+
+    arrow.textContent =
+      '▼';
+
+
+    right.appendChild(
+      meta
+    );
+
+
+    right.appendChild(
+      arrow
+    );
+
+
+    header.appendChild(
+      left
+    );
+
+
+    header.appendChild(
+      right
+    );
+
+
+    return header;
+  }
+
+
+  function convertCardToAccordion(
+    card,
+    options
+  ) {
+
+    if (
+      !card ||
+      card.dataset.accordionReady ===
+      '1'
+    ) {
+
+      return null;
+    }
+
+
+    card.dataset.accordionReady =
+      '1';
+
+
+    card.classList.add(
+      'gpt-accordion-card'
+    );
+
+
+    const body =
+      document.createElement(
+        'div'
+      );
+
+
+    body.className =
+      'gpt-accordion-body';
+
+
+    while (
+      card.firstChild
+    ) {
+
+      body.appendChild(
+        card.firstChild
+      );
+    }
+
+
+    const header =
+      createHeader(
+        options.emoji,
+        options.title,
+        options.metaId
+      );
+
+
+    card.appendChild(
+      header
+    );
+
+
+    card.appendChild(
+      body
+    );
+
+
+    setAccordionOpen(
+      card,
+      options.defaultOpen
+    );
+
+
+    header.addEventListener(
+      'click',
+      function () {
+
+        toggleAccordion(
+          card
+        );
+      }
+    );
+
+
+    return {
+      card:
+        card,
+
+      header:
+        header,
+
+      body:
+        body
+    };
+  }
+
+
+  function updateMeta(
+    textAreaId,
+    metaId,
+    emptyText
+  ) {
+
+    const textarea =
+      byId(
+        textAreaId
+      );
+
+
+    const meta =
+      byId(
+        metaId
+      );
+
+
+    if (
+      !textarea ||
+      !meta
+    ) {
+
+      return;
+    }
+
+
+    const length =
+      textarea.value.length;
+
+
+    if (
+      length === 0 &&
+      emptyText
+    ) {
+
+      meta.textContent =
+        emptyText;
+
+    } else {
+
+      meta.textContent =
+        length.toLocaleString() +
+        '자';
+    }
+  }
+
+
+  function initialize() {
+
+    const textMode =
+      byId(
+        'gptTextMode'
+      );
+
+
+    const sendText =
+      byId(
+        'gptTextSend'
+      );
+
+
+    const receiveText =
+      byId(
+        'gptTextReceive'
+      );
+
+
+    if (
+      !textMode ||
+      !sendText ||
+      !receiveText
+    ) {
+
+      return false;
+    }
+
+
+    if (
+      textMode.dataset.accordionV2Ready ===
+      '1'
+    ) {
+
+      return true;
+    }
+
+
+    textMode.dataset.accordionV2Ready =
+      '1';
+
+
+    const sendCard =
+      sendText.closest(
+        '.card'
+      );
+
+
+    const receiveCard =
+      receiveText.closest(
+        '.card'
+      );
+
+
+    if (
+      !sendCard ||
+      !receiveCard
+    ) {
+
+      return false;
+    }
+
+
+    const sendAccordion =
+      convertCardToAccordion(
+        sendCard,
+        {
+          emoji:
+            '✉️',
+
+          title:
+            '상대방에게 보낼 텍스트',
+
+          metaId:
+            'gptTextSendAccordionMeta',
+
+          defaultOpen:
+            true
+        }
+      );
+
+
+    const receiveAccordion =
+      convertCardToAccordion(
+        receiveCard,
+        {
+          emoji:
+            '📥',
+
+          title:
+            '상대방에게서 받은 최신 텍스트',
+
+          metaId:
+            'gptTextReceiveAccordionMeta',
+
+          defaultOpen:
+            false
+        }
+      );
+
+
+    updateMeta(
+      'gptTextSend',
+      'gptTextSendAccordionMeta',
+      '0자'
+    );
+
+
+    updateMeta(
+      'gptTextReceive',
+      'gptTextReceiveAccordionMeta',
+      '대기 중'
+    );
+
+
+    sendText.addEventListener(
+      'input',
+      function () {
+
+        updateMeta(
+          'gptTextSend',
+          'gptTextSendAccordionMeta',
+          '0자'
+        );
+      }
+    );
+
+
+    let previousReceiveValue =
+      receiveText.value;
+
+
+    // 기존 Text Bridge 코드가 textarea.value를 직접 변경하므로
+    // 값 변경을 주기적으로 감지
+    window.setInterval(
+      function () {
+
+        updateMeta(
+          'gptTextSend',
+          'gptTextSendAccordionMeta',
+          '0자'
+        );
+
+
+        const currentValue =
+          receiveText.value;
+
+
+        if (
+          currentValue !==
+          previousReceiveValue
+        ) {
+
+          const hadPreviousText =
+            previousReceiveValue.length >
+            0;
+
+
+          previousReceiveValue =
+            currentValue;
+
+
+          updateMeta(
+            'gptTextReceive',
+            'gptTextReceiveAccordionMeta',
+            '대기 중'
+          );
+
+
+          // 새 수신 내용이 실제로 들어왔으면 자동 펼침
+          if (
+            currentValue.length >
+            0
+          ) {
+
+            setAccordionOpen(
+              receiveAccordion
+                ? receiveAccordion.card
+                : receiveCard,
+              true
+            );
+
+
+            // 새 수신 시 보내기 영역은 자동 접어서
+            // 받은 내용을 바로 보기 쉽게 함
+            if (
+              sendAccordion &&
+              hadPreviousText
+            ) {
+
+              setAccordionOpen(
+                sendAccordion.card,
+                false
+              );
+            }
+          }
+        }
+
+      },
+      500
+    );
+
+
+    return true;
+  }
+
+
+  // Text Bridge DOM이 기존 스크립트에서 생성되므로
+  // 생성 완료까지 짧게 확인
+  let attempts =
+    0;
+
+
+  const timer =
+    window.setInterval(
+      function () {
+
+        attempts++;
+
+
+        if (
+          initialize() ||
+          attempts > 100
+        ) {
+
+          window.clearInterval(
+            timer
+          );
+        }
+
+      },
+      100
+    );
+
+})();
+
+</script>
+
+<!-- GPT_TEXT_ACCORDION_V2_END -->
 </body>
 </html>
