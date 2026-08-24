@@ -1,0 +1,575 @@
+/* ==========================================================
+   GPT -> PC FILE TRANSFER V1
+========================================================== */
+
+#gptFileMode {
+    display: none;
+}
+
+#gptFileMode.file-mode-visible {
+    display: block;
+}
+
+
+/* ==========================================================
+   TAB BAR - 5개 탭에서도 너무 작아지지 않게
+========================================================== */
+
+.modebar.gpt-file-tabs-enabled {
+    display: flex !important;
+    grid-template-columns: none !important;
+
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    scrollbar-width: none;
+
+    -webkit-overflow-scrolling: touch;
+}
+
+.modebar.gpt-file-tabs-enabled::-webkit-scrollbar {
+    display: none;
+}
+
+.modebar.gpt-file-tabs-enabled > button {
+    flex: 1 0 auto !important;
+
+    width: auto !important;
+    min-width: 104px !important;
+
+    white-space: nowrap;
+}
+
+
+/* ==========================================================
+   MAIN
+========================================================== */
+
+.file-transfer-card {
+    padding: 14px !important;
+}
+
+.file-transfer-title {
+    margin: 0 0 4px;
+
+    color: #f4f5f7;
+
+    font-size: 17px;
+    font-weight: 760;
+
+    letter-spacing: -.025em;
+}
+
+.file-transfer-description {
+    margin-bottom: 13px;
+
+    color: #8e96a5;
+
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+
+/* ==========================================================
+   ROLE
+========================================================== */
+
+.file-role {
+    display: grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap: 7px;
+
+    margin-top: 7px;
+}
+
+.file-role button {
+    width: 100% !important;
+
+    min-height: 42px !important;
+
+    margin: 0 !important;
+
+    font-size: 13px !important;
+}
+
+.file-role button.selected {
+    background:
+        rgba(128,102,232,.90) !important;
+
+    color: white !important;
+
+    border-color:
+        rgba(170,150,255,.45) !important;
+}
+
+.file-role button.unselected {
+    background:
+        rgba(255,255,255,.055) !important;
+
+    color: #9ca3af !important;
+}
+
+
+/* ==========================================================
+   PATH
+========================================================== */
+
+.file-path-info {
+    margin-top: 9px;
+    padding: 9px 10px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.07);
+
+    border-radius: 9px;
+
+    background:
+        rgba(6,8,12,.45);
+
+    color: #7d8593;
+
+    font-family:
+        "Cascadia Code",
+        Consolas,
+        monospace;
+
+    font-size: 10px;
+    line-height: 1.5;
+
+    word-break: break-all;
+}
+
+
+/* ==========================================================
+   FILE PICKER
+========================================================== */
+
+.file-drop-zone {
+    margin-top: 8px;
+    padding: 17px 12px;
+
+    border:
+        1px dashed
+        rgba(148,163,184,.30);
+
+    border-radius: 12px;
+
+    background:
+        rgba(9,11,16,.42);
+
+    text-align: center;
+
+    cursor: pointer;
+
+    transition:
+        border-color .16s ease,
+        background .16s ease;
+}
+
+.file-drop-zone:hover {
+    border-color:
+        rgba(79,124,255,.55);
+
+    background:
+        rgba(79,124,255,.045);
+}
+
+.file-drop-zone.dragover {
+    border-color:
+        rgba(79,124,255,.75);
+
+    background:
+        rgba(79,124,255,.09);
+}
+
+.file-drop-icon {
+    margin-bottom: 6px;
+
+    font-size: 24px;
+}
+
+.file-drop-title {
+    color: #e3e6ec;
+
+    font-size: 13px;
+    font-weight: 690;
+}
+
+.file-drop-sub {
+    margin-top: 3px;
+
+    color: #79818f;
+
+    font-size: 11px;
+}
+
+#gptFileInput {
+    display: none;
+}
+
+
+/* ==========================================================
+   SELECTED FILE
+========================================================== */
+
+.file-selected {
+    display: none;
+
+    margin-top: 9px;
+    padding: 10px 11px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.08);
+
+    border-radius: 10px;
+
+    background:
+        rgba(10,12,17,.55);
+}
+
+.file-selected.visible {
+    display: flex;
+
+    align-items: center;
+
+    gap: 9px;
+}
+
+.file-selected-icon {
+    flex: 0 0 auto;
+
+    width: 35px;
+    height: 35px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 9px;
+
+    background:
+        rgba(79,124,255,.12);
+
+    font-size: 18px;
+}
+
+.file-selected-body {
+    flex: 1;
+
+    min-width: 0;
+}
+
+.file-selected-name {
+    overflow: hidden;
+
+    color: #e8eaf0;
+
+    font-size: 12px;
+    font-weight: 680;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-selected-size {
+    margin-top: 2px;
+
+    color: #7f8795;
+
+    font-size: 10px;
+}
+
+
+/* ==========================================================
+   UPLOAD BUTTON
+========================================================== */
+
+#gptFileSend {
+    min-height: 43px !important;
+
+    margin-top: 9px !important;
+
+    font-size: 13px !important;
+}
+
+
+/* ==========================================================
+   PROGRESS
+========================================================== */
+
+.file-progress {
+    display: none;
+
+    margin-top: 9px;
+}
+
+.file-progress.visible {
+    display: block;
+}
+
+.file-progress-track {
+    height: 5px;
+
+    overflow: hidden;
+
+    border-radius: 999px;
+
+    background:
+        rgba(255,255,255,.07);
+}
+
+.file-progress-bar {
+    width: 0%;
+    height: 100%;
+
+    border-radius: inherit;
+
+    background: #4f7cff;
+
+    transition:
+        width .18s ease;
+}
+
+.file-progress-text {
+    margin-top: 5px;
+
+    color: #868e9c;
+
+    font-size: 10px;
+}
+
+
+/* ==========================================================
+   RECEIVED LIST
+========================================================== */
+
+.file-list {
+    display: flex;
+    flex-direction: column;
+
+    gap: 7px;
+}
+
+.file-empty {
+    padding: 19px 10px;
+
+    color: #707887;
+
+    font-size: 12px;
+
+    text-align: center;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+
+    gap: 9px;
+
+    padding: 10px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.075);
+
+    border-radius: 11px;
+
+    background:
+        rgba(9,11,16,.46);
+}
+
+.file-item-icon {
+    flex: 0 0 auto;
+
+    width: 37px;
+    height: 37px;
+
+    display: grid;
+    place-items: center;
+
+    border-radius: 9px;
+
+    background:
+        rgba(255,255,255,.055);
+
+    font-size: 18px;
+}
+
+.file-item-main {
+    flex: 1;
+
+    min-width: 0;
+}
+
+.file-item-name {
+    overflow: hidden;
+
+    color: #e6e9ef;
+
+    font-size: 12px;
+    font-weight: 660;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-item-meta {
+    margin-top: 3px;
+
+    color: #747c89;
+
+    font-size: 10px;
+}
+
+.file-download-button {
+    flex: 0 0 auto !important;
+
+    width: auto !important;
+
+    min-height: 34px !important;
+
+    margin: 0 !important;
+
+    padding: 6px 10px !important;
+
+    font-size: 11px !important;
+}
+
+
+/* ==========================================================
+   ACCORDION
+========================================================== */
+
+.file-accordion {
+    margin-bottom: 10px;
+
+    overflow: hidden;
+
+    border:
+        1px solid
+        rgba(255,255,255,.085);
+
+    border-radius: 13px;
+
+    background:
+        rgba(24,27,35,.78);
+}
+
+.file-accordion-header {
+    width: 100% !important;
+
+    min-height: 50px !important;
+
+    margin: 0 !important;
+    padding: 10px 13px !important;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    border: 0 !important;
+    border-radius: 0 !important;
+
+    background:
+        rgba(255,255,255,.035) !important;
+
+    color: #f2f4f7 !important;
+}
+
+.file-accordion-body {
+    display: none;
+
+    padding: 11px;
+
+    border-top:
+        1px solid
+        rgba(255,255,255,.06);
+}
+
+.file-accordion.open
+.file-accordion-body {
+    display: block;
+}
+
+.file-arrow {
+    color: #89919f;
+
+    transition:
+        transform .18s ease;
+}
+
+.file-accordion.open
+.file-arrow {
+    transform:
+        rotate(180deg);
+}
+
+.file-received-count {
+    margin-right: 7px;
+
+    color: #89919f;
+
+    font-size: 11px;
+}
+
+
+/* ==========================================================
+   STATUS
+========================================================== */
+
+.file-status {
+    padding: 10px 11px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.075);
+
+    border-radius: 10px;
+
+    background:
+        rgba(7,9,13,.55);
+
+    color: #d6dae2;
+
+    font-size: 12px;
+    line-height: 1.55;
+
+    white-space: pre-wrap;
+}
+
+
+/* ==========================================================
+   MOBILE
+========================================================== */
+
+@media(max-width:600px) {
+
+    .modebar.gpt-file-tabs-enabled > button {
+        flex: 0 0 auto !important;
+
+        min-width: 96px !important;
+
+        font-size: 11px !important;
+    }
+
+    .file-transfer-card {
+        padding: 12px !important;
+    }
+
+    .file-role button {
+        min-height: 40px !important;
+    }
+
+    .file-item {
+        padding: 9px;
+    }
+
+    .file-download-button {
+        min-height: 33px !important;
+    }
+
+}
