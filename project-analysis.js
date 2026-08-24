@@ -1744,6 +1744,258 @@
        COPY
     ======================================================== */
 
+    /* ========================================================
+       DOWNLOAD JSON
+    ======================================================== */
+
+    function makeSafeFilenamePart(
+        value
+    ) {
+
+        let text =
+            String(
+                value || ''
+            )
+                .trim();
+
+
+        if (!text) {
+
+            return 'project';
+        }
+
+
+        text =
+            text
+                .replace(
+                    /\\/g,
+                    '/'
+                );
+
+
+        const parts =
+            text
+                .split('/')
+                .filter(
+                    Boolean
+                );
+
+
+        let name =
+            parts.length
+                ? parts[
+                    parts.length - 1
+                ]
+                : 'project';
+
+
+        name =
+            name
+                .toLowerCase()
+                .replace(
+                    /[^a-z0-9가-힣._-]/g,
+                    '-'
+                )
+                .replace(
+                    /-+/g,
+                    '-'
+                )
+                .replace(
+                    /^[-.]+|[-.]+$/g,
+                    ''
+                );
+
+
+        return (
+            name ||
+            'project'
+        );
+    }
+
+
+    function downloadTimestamp() {
+
+        const now =
+            new Date();
+
+
+        const pad =
+            function (value) {
+
+                return String(
+                    value
+                ).padStart(
+                    2,
+                    '0'
+                );
+            };
+
+
+        return (
+            now.getFullYear() +
+            pad(
+                now.getMonth() + 1
+            ) +
+            pad(
+                now.getDate()
+            ) +
+            '-' +
+            pad(
+                now.getHours()
+            ) +
+            pad(
+                now.getMinutes()
+            )
+        );
+    }
+
+
+    function downloadAnalysisJson() {
+
+        try {
+
+            const resultBox =
+                byId(
+                    'gptAnalysisResult'
+                );
+
+
+            if (!resultBox) {
+
+                throw new Error(
+                    'Repomix 결과 영역을 찾지 못했습니다.'
+                );
+            }
+
+
+            const text =
+                resultBox.value;
+
+
+            if (!text) {
+
+                throw new Error(
+                    '다운로드할 Repomix 결과가 없습니다.'
+                );
+            }
+
+
+            // JSON 결과인지 한번 검증
+            try {
+
+                JSON.parse(
+                    text
+                );
+
+            } catch (error) {
+
+                throw new Error(
+                    '현재 분석 결과가 올바른 JSON 형식이 아닙니다.'
+                );
+            }
+
+
+            const projectPathInput =
+                byId(
+                    'gptAnalysisProjectPath'
+                );
+
+
+            const projectName =
+                makeSafeFilenamePart(
+                    projectPathInput
+                        ? projectPathInput.value
+                        : ''
+                );
+
+
+            const filename =
+                'repomix-' +
+                projectName +
+                '-' +
+                downloadTimestamp() +
+                '.json';
+
+
+            const blob =
+                new Blob(
+                    [
+                        text
+                    ],
+                    {
+                        type:
+                            'application/json;charset=utf-8'
+                    }
+                );
+
+
+            const url =
+                URL.createObjectURL(
+                    blob
+                );
+
+
+            const link =
+                document.createElement(
+                    'a'
+                );
+
+
+            link.href =
+                url;
+
+
+            link.download =
+                filename;
+
+
+            link.style.display =
+                'none';
+
+
+            document.body.appendChild(
+                link
+            );
+
+
+            link.click();
+
+
+            link.remove();
+
+
+            window.setTimeout(
+                function () {
+
+                    URL.revokeObjectURL(
+                        url
+                    );
+
+                },
+                1000
+            );
+
+
+            setAnalysisStatus(
+                '✅ JSON 파일 다운로드 시작\n\n' +
+                filename +
+                '\n\n' +
+                text.length
+                    .toLocaleString() +
+                '자',
+                'success'
+            );
+
+        } catch (error) {
+
+            setAnalysisStatus(
+                '❌ JSON 다운로드 실패\n\n' +
+                error.message,
+                'error'
+            );
+        }
+    }
+
     async function copyJson() {
 
         const text =
@@ -2221,6 +2473,14 @@
                 '      </button>',
 
                 '      <button',
+                '        id="gptAnalysisDownloadJson"',
+                '        class="blue"',
+                '        type="button"',
+                '      >',
+                '        JSON 파일 다운로드',
+                '      </button>',
+
+                '      <button',
                 '        id="gptAnalysisCopyJson"',
                 '        class="gray"',
                 '        type="button"',
@@ -2330,6 +2590,14 @@
         ).addEventListener(
             'click',
             copyForGpt
+        );
+
+
+        byId(
+            'gptAnalysisDownloadJson'
+        ).addEventListener(
+            'click',
+            downloadAnalysisJson
         );
 
 
