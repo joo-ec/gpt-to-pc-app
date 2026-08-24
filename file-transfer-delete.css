@@ -1,0 +1,175 @@
+/* ==========================================================
+   GPT -> PC FILE CLEANUP MODULE
+========================================================== */
+
+.file-cleanup-panel {
+    margin-top: 10px;
+    padding: 11px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.075);
+
+    border-radius: 10px;
+
+    background:
+        rgba(7,9,13,.42);
+}
+
+
+/* ==========================================================
+   AUTO DELETE OPTION
+========================================================== */
+
+.file-auto-delete-option {
+    display: flex;
+    align-items: flex-start;
+
+    gap: 9px;
+
+    cursor: pointer;
+}
+
+.file-auto-delete-option input {
+    width: 18px !important;
+    height: 18px !important;
+    min-height: 0 !important;
+
+    flex: 0 0 auto;
+
+    margin: 1px 0 0 !important;
+}
+
+.file-auto-delete-main {
+    flex: 1;
+
+    min-width: 0;
+}
+
+.file-auto-delete-title {
+    color: #e0e4eb;
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.file-auto-delete-description {
+    margin-top: 3px;
+
+    color: #777f8d;
+
+    font-size: 10px;
+    line-height: 1.45;
+}
+
+.file-auto-delete-state {
+    margin-top: 7px;
+
+    color: #929aa8;
+
+    font-size: 10px;
+}
+
+
+/* ==========================================================
+   FILE ITEM ACTIONS
+========================================================== */
+
+.file-cleanup-actions {
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+
+    gap: 5px;
+}
+
+.file-item
+.file-download-button {
+    flex: 0 0 auto !important;
+}
+
+.file-delete-button {
+    width: auto !important;
+
+    min-height: 34px !important;
+
+    margin: 0 !important;
+
+    padding: 6px 9px !important;
+
+    border:
+        1px solid
+        rgba(239,68,68,.24) !important;
+
+    background:
+        rgba(239,68,68,.11) !important;
+
+    color:
+        #f6a7ac !important;
+
+    font-size: 11px !important;
+}
+
+.file-delete-button:hover {
+    background:
+        rgba(239,68,68,.17) !important;
+}
+
+
+/* ==========================================================
+   DELETE ALL
+========================================================== */
+
+.file-delete-all {
+    width: 100% !important;
+
+    min-height: 38px !important;
+
+    margin-top: 7px !important;
+
+    border:
+        1px solid
+        rgba(239,68,68,.21) !important;
+
+    background:
+        rgba(239,68,68,.08) !important;
+
+    color:
+        #eaa1a6 !important;
+
+    font-size: 11px !important;
+}
+
+
+/* ==========================================================
+   BUSY STATE
+========================================================== */
+
+.file-cleanup-busy {
+    opacity: .55;
+
+    pointer-events: none;
+}
+
+
+/* ==========================================================
+   MOBILE
+========================================================== */
+
+@media(max-width:600px) {
+
+    .file-item {
+        align-items: flex-start;
+    }
+
+    .file-cleanup-actions {
+        flex-direction: column;
+    }
+
+    .file-delete-button,
+    .file-download-button {
+        min-width: 74px !important;
+    }
+
+}
