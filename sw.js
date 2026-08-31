@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gpt-to-pc-file-cleanup-20260824111135';
+const CACHE_NAME = 'gpt-to-pc-clipboard-image-20260831112335';
 
 const APP_SHELL = [
   './',
