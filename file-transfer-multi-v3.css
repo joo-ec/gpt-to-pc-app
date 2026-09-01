@@ -1,0 +1,489 @@
+/* ==========================================================
+   GPT -> PC MULTI FILE UPLOADER V3
+========================================================== */
+
+#gptMultiFileUploaderV3 {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    padding: 12px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.08);
+
+    border-radius: 12px;
+
+    background:
+        rgba(8,10,14,.46);
+}
+
+
+/* ==========================================================
+   HEADER
+========================================================== */
+
+.multi-file-v3-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 10px;
+}
+
+.multi-file-v3-title {
+    color: #e6e9ef;
+
+    font-size: 13px;
+    font-weight: 750;
+}
+
+.multi-file-v3-badge {
+    flex: 0 0 auto;
+
+    padding: 3px 7px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.075);
+
+    border-radius: 999px;
+
+    background:
+        rgba(255,255,255,.04);
+
+    color: #8992a0;
+
+    font-size: 9px;
+}
+
+
+/* ==========================================================
+   DROP ZONE
+========================================================== */
+
+.multi-file-v3-drop-zone {
+    margin-top: 10px;
+
+    min-height: 94px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    gap: 4px;
+
+    padding: 13px;
+
+    border:
+        1px dashed
+        rgba(255,255,255,.14);
+
+    border-radius: 11px;
+
+    background:
+        rgba(4,6,9,.35);
+
+    cursor: pointer;
+
+    transition:
+        border-color .15s ease,
+        background .15s ease,
+        transform .15s ease;
+}
+
+.multi-file-v3-drop-zone:hover {
+    border-color:
+        rgba(120,155,255,.36);
+
+    background:
+        rgba(80,110,200,.07);
+}
+
+.multi-file-v3-drop-zone.is-dragging {
+    border-color:
+        rgba(120,155,255,.65);
+
+    background:
+        rgba(80,110,200,.13);
+
+    transform:
+        scale(.995);
+}
+
+.multi-file-v3-drop-icon {
+    font-size: 23px;
+}
+
+.multi-file-v3-drop-title {
+    color: #dce1e9;
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.multi-file-v3-drop-sub {
+    color: #737c89;
+
+    font-size: 10px;
+    line-height: 1.45;
+
+    text-align: center;
+}
+
+
+/* 실제 input은 브라우저 파일 선택창 호출용 */
+#gptMultiFileInputV3 {
+    display: none;
+}
+
+
+/* ==========================================================
+   SUMMARY
+========================================================== */
+
+.multi-file-v3-summary {
+    margin-top: 9px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 8px;
+}
+
+.multi-file-v3-summary-text {
+    min-width: 0;
+
+    color: #929aa7;
+
+    font-size: 10px;
+}
+
+.multi-file-v3-clear {
+    flex: 0 0 auto !important;
+
+    width: auto !important;
+    min-height: 30px !important;
+
+    margin: 0 !important;
+    padding: 4px 9px !important;
+
+    border:
+        1px solid
+        rgba(255,255,255,.075) !important;
+
+    background:
+        rgba(255,255,255,.045) !important;
+
+    color: #a5adb8 !important;
+
+    font-size: 10px !important;
+}
+
+.multi-file-v3-clear:disabled {
+    opacity: .35;
+}
+
+
+/* ==========================================================
+   FILE LIST
+========================================================== */
+
+.multi-file-v3-list {
+    margin-top: 7px;
+
+    max-height: 330px;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 6px;
+
+    overflow-y: auto;
+}
+
+.multi-file-v3-empty {
+    padding: 13px 8px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.05);
+
+    border-radius: 9px;
+
+    background:
+        rgba(4,6,9,.24);
+
+    color: #656e7b;
+
+    font-size: 10px;
+
+    text-align: center;
+}
+
+.multi-file-v3-row {
+    display: flex;
+    align-items: center;
+
+    gap: 9px;
+
+    padding: 8px 9px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.07);
+
+    border-radius: 10px;
+
+    background:
+        rgba(5,7,10,.44);
+}
+
+.multi-file-v3-icon {
+    flex: 0 0 auto;
+
+    width: 28px;
+
+    font-size: 18px;
+
+    text-align: center;
+}
+
+.multi-file-v3-main {
+    flex: 1;
+
+    min-width: 0;
+}
+
+.multi-file-v3-name {
+    overflow: hidden;
+
+    color: #e0e4ea;
+
+    font-size: 11px;
+    font-weight: 650;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.multi-file-v3-meta {
+    margin-top: 2px;
+
+    color: #737c89;
+
+    font-size: 9px;
+}
+
+.multi-file-v3-state {
+    margin-top: 3px;
+
+    color: #8c95a2;
+
+    font-size: 9px;
+}
+
+.multi-file-v3-row[data-state="reading"]
+.multi-file-v3-state,
+
+.multi-file-v3-row[data-state="encoding"]
+.multi-file-v3-state,
+
+.multi-file-v3-row[data-state="uploading"]
+.multi-file-v3-state {
+    color: #8daeff;
+}
+
+.multi-file-v3-row[data-state="success"]
+.multi-file-v3-state {
+    color: #75d7a9;
+}
+
+.multi-file-v3-row[data-state="failed"]
+.multi-file-v3-state {
+    color: #ef969d;
+}
+
+.multi-file-v3-row[data-state="invalid"]
+.multi-file-v3-state {
+    color: #ecad75;
+}
+
+.multi-file-v3-remove {
+    flex: 0 0 auto !important;
+
+    width: 30px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    display: grid;
+    place-items: center;
+
+    border:
+        1px solid
+        rgba(255,255,255,.07) !important;
+
+    border-radius: 8px !important;
+
+    background:
+        rgba(255,255,255,.035) !important;
+
+    color: #8c95a2 !important;
+
+    font-size: 17px !important;
+}
+
+.multi-file-v3-remove:hover {
+    background:
+        rgba(239,68,68,.09) !important;
+
+    color: #ee999f !important;
+}
+
+
+/* ==========================================================
+   SEND
+========================================================== */
+
+.multi-file-v3-send {
+    width: 100% !important;
+
+    min-height: 41px !important;
+
+    margin-top: 9px !important;
+
+    font-size: 11px !important;
+    font-weight: 750 !important;
+}
+
+.multi-file-v3-send:disabled {
+    opacity: .42;
+
+    cursor: default;
+}
+
+
+/* ==========================================================
+   PROGRESS
+========================================================== */
+
+.multi-file-v3-progress {
+    margin-top: 8px;
+
+    display: none;
+}
+
+.multi-file-v3-progress.is-visible {
+    display: block;
+}
+
+.multi-file-v3-progress-track {
+    height: 5px;
+
+    overflow: hidden;
+
+    border-radius: 999px;
+
+    background:
+        rgba(255,255,255,.07);
+}
+
+.multi-file-v3-progress-bar {
+    width: 0%;
+    height: 100%;
+
+    border-radius: inherit;
+
+    background:
+        currentColor;
+
+    color: #789cff;
+
+    transition:
+        width .2s ease;
+}
+
+.multi-file-v3-progress-text {
+    margin-top: 5px;
+
+    color: #838c99;
+
+    font-size: 9px;
+}
+
+
+/* ==========================================================
+   RESULT
+========================================================== */
+
+.multi-file-v3-status {
+    margin-top: 8px;
+
+    min-height: 14px;
+
+    color: #89929f;
+
+    font-size: 10px;
+    line-height: 1.5;
+
+    white-space: pre-wrap;
+}
+
+.multi-file-v3-status.success {
+    color: #74d4a7;
+}
+
+.multi-file-v3-status.error {
+    color: #ee969d;
+}
+
+.multi-file-v3-status.warning {
+    color: #e1ad75;
+}
+
+.multi-file-v3-status.busy {
+    color: #91adf7;
+}
+
+
+/* ==========================================================
+   LEGACY SINGLE-UPLOADER
+========================================================== */
+
+/*
+   V3가 정상 설치되면 JS에서 기존 단일 input/send 버튼을 숨긴다.
+   받은 파일 목록 등의 기존 기능은 숨기지 않는다.
+*/
+
+.gpt-multi-v3-hidden {
+    display: none !important;
+}
+
+
+/* ==========================================================
+   MOBILE
+========================================================== */
+
+@media(max-width:600px) {
+
+    #gptMultiFileUploaderV3 {
+        padding: 10px;
+    }
+
+    .multi-file-v3-drop-zone {
+        min-height: 88px;
+    }
+
+    .multi-file-v3-list {
+        max-height: 270px;
+    }
+
+    .multi-file-v3-summary {
+        align-items: flex-start;
+    }
+
+}
