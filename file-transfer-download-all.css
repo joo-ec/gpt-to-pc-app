@@ -1,0 +1,138 @@
+/* ==========================================================
+   FILE TRANSFER - DOWNLOAD ALL ZIP
+========================================================== */
+
+.file-download-all-panel {
+    margin-top: 10px;
+    padding: 10px;
+
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 10px;
+
+    background: rgba(5,7,10,.35);
+}
+
+.file-download-all-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 8px;
+
+    margin-bottom: 8px;
+}
+
+.file-download-all-info {
+    min-width: 0;
+
+    color: #8e97a4;
+
+    font-size: 10px;
+}
+
+.file-download-all-button {
+    width: 100%;
+    min-height: 39px;
+
+    margin: 0 !important;
+
+    border-radius: 9px;
+
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.file-download-all-button:disabled {
+    opacity: .4;
+    cursor: default;
+}
+
+.file-download-all-progress {
+    display: none;
+
+    margin-top: 9px;
+}
+
+.file-download-all-progress.visible {
+    display: block;
+}
+
+.file-download-all-progress-track {
+    height: 5px;
+
+    overflow: hidden;
+
+    border-radius: 999px;
+
+    background: rgba(255,255,255,.07);
+}
+
+.file-download-all-progress-bar {
+    width: 0%;
+    height: 100%;
+
+    border-radius: inherit;
+
+    background: currentColor;
+    color: #789cff;
+
+    transition: width .15s ease;
+}
+
+.file-download-all-progress-text {
+    margin-top: 5px;
+
+    color: #818a97;
+
+    font-size: 9px;
+    line-height: 1.45;
+}
+
+.file-download-all-auto-delete {
+    margin-top: 7px;
+
+    color: #707987;
+
+    font-size: 9px;
+}
+
+.file-download-all-auto-delete.on {
+    color: #d6a46d;
+}
+
+.file-download-all-result {
+    margin-top: 7px;
+
+    min-height: 14px;
+
+    color: #838c99;
+
+    font-size: 10px;
+    line-height: 1.5;
+
+    white-space: pre-wrap;
+}
+
+.file-download-all-result.success {
+    color: #72d2a4;
+}
+
+.file-download-all-result.error {
+    color: #ec949b;
+}
+
+.file-download-all-result.warning {
+    color: #dfa96f;
+}
+
+.file-download-all-result.busy {
+    color: #91acf4;
+}
+
+@media(max-width:600px) {
+
+    .file-download-all-panel {
+        padding: 9px;
+    }
+
+}
